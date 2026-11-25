@@ -87,6 +87,57 @@ textarea{width:100%;min-height:96px;font-family:ui-monospace,Menlo,Consolas,mono
 ol.ana{margin:0;padding:0;list-style:none;display:grid;gap:10px}ol.ana li{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}ol.ana li div{margin-top:4px;line-height:1.6}textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px}
 tr.off td{opacity:.5}
 .mk{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}.mk.big{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.mt{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}.mt.big{padding:14px 16px}.mn{font-weight:700;font-size:14px}.mc{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}.mp{font-size:20px;font-weight:700;margin-top:4px}.mt.big .mp{font-size:26px}.mch{font-size:13px;font-weight:600;margin-top:2px}.msp{margin-top:6px}
+
+/* ---- 모바일 최적화 ---- */
+html{-webkit-text-size-adjust:100%}
+.wrap{padding-bottom:calc(70px + env(safe-area-inset-bottom))}
+.tabs{scrollbar-width:none;-webkit-overflow-scrolling:touch}.tabs::-webkit-scrollbar{display:none}
+.scroll{-webkit-overflow-scrolling:touch}
+@media(max-width:640px){
+ body{font-size:14px;line-height:1.5}
+ .wrap{padding:0 10px calc(60px + env(safe-area-inset-bottom))}
+ .top{position:static;margin:0 -10px;padding:10px 10px 0;box-shadow:none}
+ .title{gap:8px;margin-bottom:4px}
+ h1{font-size:18px}
+ .sub{font-size:12px;line-height:1.4}
+ #autoNote{display:block;margin-top:2px}
+ #monthNav{width:100%;flex-wrap:nowrap;gap:6px}
+ #monthNav select{flex:1;min-width:0}
+ #monthNav button{padding:4px 11px}
+ .tabs{position:sticky;top:0;z-index:6;background:var(--surface);margin:0 -10px;padding:0 6px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);box-shadow:0 2px 8px rgba(20,40,80,.08);scroll-snap-type:x proximity}
+ .tabs button{padding:11px 11px;font-size:14px;scroll-snap-align:start}
+ main{gap:12px;padding-top:12px}
+ .card{padding:12px;border-radius:12px}
+ .card h2{font-size:15px;margin-bottom:10px}
+ .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .tile{padding:10px 11px}
+ .tile .k{font-size:11.5px;line-height:1.3}
+ .tile .v{font-size:17px}
+ .tile .s{font-size:11px;line-height:1.35}
+ .mk,.mk.big{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .mt,.mt.big{padding:10px 11px}
+ .mn{font-size:13px}.mp{font-size:17px}.mt.big .mp{font-size:19px}.mch{font-size:12px}
+ .form{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .form .pri,.form button[type=submit]{grid-column:1/-1}
+ .form label.f[style*="span 2"]{grid-column:1/-1!important}
+ input,select,textarea{font-size:16px;min-height:40px;padding:6px 9px}
+ input[type=checkbox]{min-height:0;width:20px;height:20px}
+ button{min-height:38px;padding:6px 12px}
+ button.ghost{min-height:32px}
+ table{font-size:13px}
+ th,td{padding:7px 8px}
+ th{font-size:12px}
+ td:first-child,th:first-child{position:sticky;left:0;z-index:2;background:var(--surface);box-shadow:1px 0 0 var(--line)}
+ th:first-child{background:var(--soft);z-index:3}
+ tbody tr:nth-child(even) td:first-child{background:var(--zebra)}
+ .chartbox{height:230px}
+ .note{font-size:12px}
+ .alert div{padding:7px 10px;font-size:13px}
+ ol.ana li{padding:9px 10px}
+ .grid2{gap:12px}
+ .scroll[style*="max-height"]{max-height:60vh!important}
+}
+@media(max-width:380px){.tile .v{font-size:15px}.mp{font-size:15px}.mt.big .mp{font-size:17px}}
 </style>
 </head>
 <body>
