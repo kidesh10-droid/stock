@@ -150,7 +150,7 @@ function seed(){
     set:{pcap:9000000,prate:0.132,fx:FX0,cash:5828186,loan:0,taxRate:0.22,deduct:2500000},rlVer:5,rl:rlNew().map(function(r,i){r.id=i+1;return r;}),pensVer:3,pens:[{id:1,acct:'퇴직연금 DC',kind:'원리금보장형',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}].concat(pensNew().map(function(p,i){p.id=i+2;return p;})),pc:[],sim:{},memos:(function(){var m={};m[d]='토스 화면 기준으로 평균단가와 현재가를 입력했습니다.';return m;})(),jtab:'ALL',nextId:{trades:id,notes:2}};
 }
 function norm(o){if(!o||!Array.isArray(o.trades))return null;
-  o.sim=o.sim||{};if(!o.pens)o.pens=[{id:1,acct:'퇴직연금 DC',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}];o.pc=o.pc||[];if((o.pensVer||0)<2){var mx=0;o.pens.forEach(function(p){mx=Math.max(mx,+p.id||0);if(p.id===1&&!p.kind)p.kind='원리금보장형';});pensNew().forEach(function(p){p.id=++mx;o.pens.push(p);});o.pensVer=2;}if((o.pensVer||0)<3){o.pens.forEach(function(p){if(!p.qty&&/TIGER 미국필라델피아반도체/.test(p.name||''))p.qty=86;});o.pensVer=3;}o.plans=o.plans||{};if(o.rl&&(o.rlVer||0)<2){o.rl.forEach(function(r){if(/^화면4/.test(r.src||'')){r.kind='해외주식';r.on=true;r.memo='해외 실현손익';}if(/판매수익/.test(r.src||'')&&r.on===false){r.kind='해외주식';r.src='토스 양도소득세 · 판매수익 (대조용 합계)';r.memo='판매수익 +5,580,709원 (12.1%). 화면1~4 합계와 대조하는 행이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<3){o.rl.forEach(function(r){if(/^화면[1-4]/.test(r.src||''))r.on=false;if(/판매수익/.test(r.src||'')){r.on=true;r.kind='해외주식';r.src='토스증권 · 판매수익 (해외 합계)';r.memo='토스증권 한 곳 합계, +12.1%. 화면1~4는 같은 토스증권의 세부 화면이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<4){o.rl.forEach(function(r){var m=/^화면([1-4])/.exec(r.src||'');if(m){r.on=true;r.kind='해외주식';r.src=r.src.replace(/^화면(\d) · .*$/,function(_,d){return '토스증권 계좌'+d+' (화면'+d+(d==='4'?', 01-25~11-25':'')+')';});}if(/판매수익/.test(r.src||'')){r.on=false;r.src='토스 양도소득세 · 판매수익 (대조용)';r.memo='+12.1%. 계좌1~4 합계 5,502,410원과 대조하는 행이라 합산에서 뺐습니다. 차이 78,299원.';}});}if(o.rl&&(o.rlVer||0)<5){o.rl.forEach(function(r){if(/판매수익/.test(r.src||'')){r.on=true;r.src='토스증권 · 판매수익';r.memo='토스증권 양도소득세 화면, +12.1%';}});}o.rlVer=5;if(!o.rl){o.rl=rlNew().map(function(r,i){r.id=i+1;return r;});}o.notes=o.notes||[];o.memos=o.memos||{};o.notes.forEach(function(n){o.memos[n.date]=(o.memos[n.date]?o.memos[n.date]+' / ':'')+n.text;});o.notes=[];o.notes=o.notes||[];o.prices=o.prices||{};o.acct=o.acct||'전체';o.month=o.month||nowKey();
+  o.sim=o.sim||{};if(!o.pens)o.pens=[{id:1,acct:'퇴직연금 DC',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}];o.pc=o.pc||[];if((o.pensVer||0)<2){var mx=0;o.pens.forEach(function(p){mx=Math.max(mx,+p.id||0);if(p.id===1&&!p.kind)p.kind='원리금보장형';});pensNew().forEach(function(p){p.id=++mx;o.pens.push(p);});o.pensVer=2;}if((o.pensVer||0)<3){o.pens.forEach(function(p){if(!p.qty&&/TIGER 미국필라델피아반도체/.test(p.name||''))p.qty=86;});o.pensVer=3;}o.plans=o.plans||{};o.p30=o.p30||p30Def();if(o.rl&&(o.rlVer||0)<2){o.rl.forEach(function(r){if(/^화면4/.test(r.src||'')){r.kind='해외주식';r.on=true;r.memo='해외 실현손익';}if(/판매수익/.test(r.src||'')&&r.on===false){r.kind='해외주식';r.src='토스 양도소득세 · 판매수익 (대조용 합계)';r.memo='판매수익 +5,580,709원 (12.1%). 화면1~4 합계와 대조하는 행이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<3){o.rl.forEach(function(r){if(/^화면[1-4]/.test(r.src||''))r.on=false;if(/판매수익/.test(r.src||'')){r.on=true;r.kind='해외주식';r.src='토스증권 · 판매수익 (해외 합계)';r.memo='토스증권 한 곳 합계, +12.1%. 화면1~4는 같은 토스증권의 세부 화면이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<4){o.rl.forEach(function(r){var m=/^화면([1-4])/.exec(r.src||'');if(m){r.on=true;r.kind='해외주식';r.src=r.src.replace(/^화면(\d) · .*$/,function(_,d){return '토스증권 계좌'+d+' (화면'+d+(d==='4'?', 01-25~11-25':'')+')';});}if(/판매수익/.test(r.src||'')){r.on=false;r.src='토스 양도소득세 · 판매수익 (대조용)';r.memo='+12.1%. 계좌1~4 합계 5,502,410원과 대조하는 행이라 합산에서 뺐습니다. 차이 78,299원.';}});}if(o.rl&&(o.rlVer||0)<5){o.rl.forEach(function(r){if(/판매수익/.test(r.src||'')){r.on=true;r.src='토스증권 · 판매수익';r.memo='토스증권 양도소득세 화면, +12.1%';}});}o.rlVer=5;if(!o.rl){o.rl=rlNew().map(function(r,i){r.id=i+1;return r;});}o.notes=o.notes||[];o.memos=o.memos||{};o.notes.forEach(function(n){o.memos[n.date]=(o.memos[n.date]?o.memos[n.date]+' / ':'')+n.text;});o.notes=[];o.notes=o.notes||[];o.prices=o.prices||{};o.acct=o.acct||'전체';o.month=o.month||nowKey();
   o.set=Object.assign({pcap:9000000,prate:0.132,auto:false,fx:FX0,cash:0,loan:0,taxRate:0.22,deduct:2500000},o.set||{});
   o.nextId=o.nextId||{};
   o.nextId.trades=Math.max(o.nextId.trades||1,Math.max.apply(null,[0].concat(o.trades.map(function(x){return +x.id||0;})))+1);
@@ -215,6 +215,40 @@ function yearTax(C){
 /* ---------- views ---------- */
 function tile(k,val,s,c){return '<div class="tile"><div class="k">'+esc(k)+'</div><div class="v num '+(c||'')+'">'+val+'</div><div class="s num">'+s+'</div></div>';}
 function judge(h){if(h.ret===null)return '<span class="pill warn">입력 필요</span>';if(h.ret<=-0.5)return '<span class="pill bad">−50% 이하</span>';if(h.ret<0)return '<span class="pill warn">손실</span>';return '<span class="pill">수익</span>';}
+function p30Def(){return {budget:18000000,n:30,start:0,end:0,done:{}};}
+function p30Hold(){var a=S.acct;S.acct='전체';var C=calc();S.acct=a;return C.H.filter(function(x){return x.tk==='TQQQ'&&x.mkt==='US';})[0]||null;}
+function p30Rows(){
+  var P=S.p30=S.p30||p30Def(),fx=num(S.set.fx)||1,cur=px('TQQQ'),h=p30Hold();
+  var n=Math.max(1,Math.min(100,Math.round(num(P.n))||30)),start=num(P.start)>0?num(P.start):(cur>0?Math.round(cur*100)/100:0),end=num(P.end)>0?num(P.end):start*0.5;
+  var step=n>1?(start-end)/(n-1):0,per=num(P.budget)/n;
+  var q0=h?h.qty:0,c0=h?h.cost:0,rows=[],cq=0,cc=0,planQ=q0,planC=c0,spent=0,doneN=0;
+  for(var i=0;i<n;i++){var p=Math.round((start-step*i)*100)/100,q=p>0?Math.floor(per/(p*fx)*100)/100:0,amt=p*q*fx,isDone=!!(P.done&&P.done[i]);
+    cq+=q;cc+=amt;if(isDone){doneN++;spent+=amt;}else{planQ+=q;planC+=amt;}
+    rows.push({i:i,p:p,q:q,amt:amt,cq:cq,cc:cc,navg:planQ>0?planC/planQ:0,done:isDone});}
+  return {P:P,fx:fx,cur:cur,h:h,n:n,start:start,end:end,step:step,per:per,rows:rows,doneN:doneN,spent:spent,q0:q0,c0:c0,avg0:q0>0?c0/q0:0};
+}
+function vP30(){
+  var R=p30Rows(),P=R.P,h='<div class="card"><h2>TQQQ '+R.n+'분할 매수 계획 ('+won(num(P.budget))+'원)</h2>';
+  h+='<div class="form"><label class="f">총 예산 (원)<input id="p30Budget" class="n" type="number" step="10000" value="'+num(P.budget)+'"></label><label class="f">분할 수<input id="p30N" class="n" type="number" step="1" min="1" max="100" value="'+R.n+'"></label><label class="f">시작가 ($)<input id="p30Start" class="n" type="number" step="any" value="'+(num(P.start)>0?num(P.start):'')+'" placeholder="'+(R.cur>0?R.cur.toFixed(2):'')+'"></label><label class="f">하단가 ($)<input id="p30End" class="n" type="number" step="any" value="'+(num(P.end)>0?num(P.end):'')+'" placeholder="'+(R.start>0?(R.start/2).toFixed(2):'')+'"></label></div>';
+  if(!(R.start>0)){return h+'<p class="note">TQQQ 현재가를 먼저 입력하거나 시작가를 넣으세요.</p></div>';}
+  h+='<section class="tiles" style="margin-top:12px">'+tile('회차당 예산',won(R.per)+'원',R.n+'회 균등')+tile('가격 범위','$'+R.start.toFixed(2)+' → $'+R.end.toFixed(2),'간격 $'+R.step.toFixed(2))
+   +tile('현재 보유 / 평단',(R.q0?R.q0.toLocaleString('ko-KR',{maximumFractionDigits:3}):'0')+'주','평단 '+(R.q0>0?'$'+(R.avg0/R.fx).toFixed(2)+' ('+won(R.avg0)+'원)':'—'))
+   +tile('현재가',(R.cur>0?'$'+R.cur.toFixed(2):'—'),R.cur>0&&R.q0>0?'평단 대비 '+spc(R.cur*R.fx/R.avg0-1):'',R.cur>0&&R.q0>0?cl(R.cur*R.fx-R.avg0):'')
+   +tile('체결 진행',R.doneN+' / '+R.n+'회',won(R.spent)+'원 사용 · 남은 '+won(num(P.budget)-R.spent)+'원')+'</section>';
+  h+='<div class="scroll" style="max-height:520px;overflow:auto"><table style="min-width:1050px"><thead><tr><th>회차</th><th>목표가 ($)</th><th>목표가 (원)</th><th>매수 금액 (원)</th><th>수량 (주)</th><th>누적 금액</th><th>누적 수량</th><th>체결 시 평단 ($)</th><th>평단 (원)</th><th>현재 평단 대비</th><th>상태</th><th></th></tr></thead><tbody>';
+  R.rows.forEach(function(r){var reached=R.cur>0&&R.cur<=r.p,d=R.avg0>0?r.navg/R.avg0-1:null;
+    h+='<tr class="'+(r.done?'off':'')+'"><td class="num">'+(r.i+1)+'차</td><td class="num strong">$'+r.p.toFixed(2)+'</td><td class="num">'+won(r.p*R.fx)+'</td><td class="num">'+won(r.amt)+'</td><td class="num">'+r.q.toLocaleString('ko-KR',{maximumFractionDigits:2})+'</td><td class="num">'+won(r.cc)+'</td><td class="num">'+r.cq.toLocaleString('ko-KR',{maximumFractionDigits:2})+'</td><td class="num">$'+(r.navg/R.fx).toFixed(2)+'</td><td class="num">'+won(r.navg)+'</td><td class="num '+(d!==null&&d<0?'pos':'')+'">'+(d===null?'—':spc(d))+'</td>'
+     +'<td>'+(r.done?'<span class="pill">체결</span>':(reached?'<span class="pill warn">도달</span>':'<span class="pill">대기</span>'))+'</td><td>'+(r.done?'<button class="ghost" type="button" data-p30undo="'+r.i+'">취소</button>':'<button type="button" data-p30rec="'+r.i+'">체결 기록</button>')+'</td></tr>';});
+  return h+'</tbody></table></div><p class="note">현재 평단 대비는 아직 체결하지 않은 회차를 모두 체결했다고 볼 때의 평단입니다. 체결 기록을 누르면 목표가 그대로 매수 거래가 만들어지고 평단이 갱신됩니다. 실제 체결가가 다르면 일지 탭에서 고치세요. 시작가와 하단가를 비워 두면 시작가는 현재가, 하단가는 그 절반으로 계산합니다.</p></div>';
+}
+function bindP30(){
+  var P=S.p30=S.p30||p30Def();
+  [['p30Budget','budget'],['p30N','n'],['p30Start','start'],['p30End','end']].forEach(function(a){var e=document.getElementById(a[0]);if(e)e.onchange=function(){P[a[1]]=num(e.value);save();render();};});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-p30rec]'),function(b){b.onclick=function(){var i=+b.getAttribute('data-p30rec'),R=p30Rows(),r=R.rows[i];if(!r||!(r.q>0))return;
+    var acct=R.h?(Object.keys(R.h.accts)[0]||accts()[0]):accts()[0],id=S.nextId.trades++;
+    S.trades.push({id:id,date:today(),acct:acct,mkt:'US',tk:'TQQQ',side:'매수',price:r.p,qty:r.q,fx:R.fx,fee:0,memo:'30분할 '+(i+1)+'차'});P.done=P.done||{};P.done[i]=id;save();render();};});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-p30undo]'),function(b){b.onclick=function(){var i=+b.getAttribute('data-p30undo'),id=P.done&&P.done[i];S.trades=S.trades.filter(function(t){return t.id!==id;});if(P.done)delete P.done[i];save();render();};});
+}
 function vDash(){
   var C=calc(),H=C.H,m=S.month;
   var cost=0,val=0,tv=0,inc=0;
@@ -240,6 +274,7 @@ function vDash(){
    +tile(m.slice(0,4)+'년 실현손익 (증권사 기준 합산)',sw(rlYear(m.slice(0,4)).all)+'원','해외 '+sw(rlYear(m.slice(0,4)).ovs)+' · 예상 양도세 '+won(rlYear(m.slice(0,4)).tax)+'원 · 실현손익 탭',cl(rlYear(m.slice(0,4)).all))
    +tile(m.slice(0,4)+'년 해외 실현손익 (내 계좌)',sw(yt.real)+'원','예상 양도세 '+won(yt.tax)+'원 (공제 '+won(S.set.deduct)+')',cl(yt.real))
    +'</section>';
+  h+=vP30();
   var warn=[];
   H.forEach(function(x){if(x.ret!==null&&x.ret<=-0.5)warn.push('<div><b>'+esc(x.tk)+'</b> 수익률 <span class="num neg">'+spc(x.ret)+'</span> · 본전까지 <span class="num">'+spc(x.breakeven)+'</span> 필요 · 평가 '+won(x.valWon)+'원</div>');
     if(tv>0&&x.valWon/tv>=0.4)warn.push('<div><b>'+esc(x.tk)+'</b> 비중 <span class="num">'+pc(x.valWon/tv)+'</span> · 한 종목에 40% 이상 몰려 있습니다</div>');});
@@ -771,6 +806,7 @@ function bind(){
   if(tab==='btc')bindBtc();
   if(tab==='pen')bindPen();
   if(tab==='ana')bindAna();
+  if(tab==='dash')bindP30();
   if(tab==='rl')bindRl();
   if(tab==='notes')bindJournal();
   q('#noteForm',function(f){f.onsubmit=function(e){e.preventDefault();S.notes.push({id:S.nextId.notes++,date:v('nDate'),tag:v('nTag'),text:v('nText')});save();render();};});
