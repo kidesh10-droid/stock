@@ -138,6 +138,7 @@ html{-webkit-text-size-adjust:100%}
  .scroll[style*="max-height"]{max-height:60vh!important}
 }
 @media(max-width:380px){.tile .v{font-size:15px}.mp{font-size:15px}.mt.big .mp{font-size:17px}}
+.cpgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.fld{display:block}.fld span{display:block;font-size:12px;color:var(--mut,#667);margin-bottom:3px}.fld input,.fld textarea{box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -154,7 +155,7 @@ html{-webkit-text-size-adjust:100%}
 <script>
 (function(){
 'use strict';
-var TABS=[['dash','대시보드'],['all','합산'],['buy','신규 매수'],['btc','비트코인'],['pen','연금'],['ana','대응 분석'],['rl','실현손익'],['day','일자별 거래'],['msum','월별 집계'],['items','종목·평단'],['notes','매매일지'],['set','설정'],['help','사용 방법']];
+var TABS=[['dash','대시보드'],['all','합산'],['cp','쿠팡'],['buy','신규 매수'],['btc','비트코인'],['pen','연금'],['ana','대응 분석'],['rl','실현손익'],['day','일자별 거래'],['msum','월별 집계'],['items','종목·평단'],['notes','매매일지'],['set','설정'],['help','사용 방법']];
 var AUTO=null;
 function autoOn(tk){return S.set.auto===true&&AUTO&&AUTO.prices&&AUTO.prices[tk]&&num(AUTO.prices[tk].p)>0;}
 function px(tk){return autoOn(tk)?num(AUTO.prices[tk].p):num(S.prices[tk]);}
@@ -203,7 +204,7 @@ function seed(){
     set:{pcap:9000000,prate:0.132,fx:FX0,cash:5828186,loan:0,taxRate:0.22,deduct:2500000},rlVer:6,rl:rlNew().map(function(r,i){r.id=i+1;return r;}),pensVer:3,pens:[{id:1,acct:'퇴직연금 DC',kind:'원리금보장형',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}].concat(pensNew().map(function(p,i){p.id=i+2;return p;})),pc:[],sim:{},memos:(function(){var m={};m[d]='토스 화면 기준으로 평균단가와 현재가를 입력했습니다.';return m;})(),jtab:'ALL',nextId:{trades:id,notes:2}};
 }
 function norm(o){if(!o||!Array.isArray(o.trades))return null;
-  o.sim=o.sim||{};if(!o.pens)o.pens=[{id:1,acct:'퇴직연금 DC',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}];o.pc=o.pc||[];if((o.pensVer||0)<2){var mx=0;o.pens.forEach(function(p){mx=Math.max(mx,+p.id||0);if(p.id===1&&!p.kind)p.kind='원리금보장형';});pensNew().forEach(function(p){p.id=++mx;o.pens.push(p);});o.pensVer=2;}if((o.pensVer||0)<3){o.pens.forEach(function(p){if(!p.qty&&/TIGER 미국필라델피아반도체/.test(p.name||''))p.qty=86;});o.pensVer=3;}o.plans=o.plans||{};o.p30=o.p30||p30Def();if(o.rl&&(o.rlVer||0)<2){o.rl.forEach(function(r){if(/^화면4/.test(r.src||'')){r.kind='해외주식';r.on=true;r.memo='해외 실현손익';}if(/판매수익/.test(r.src||'')&&r.on===false){r.kind='해외주식';r.src='토스 양도소득세 · 판매수익 (대조용 합계)';r.memo='판매수익 +5,580,709원 (12.1%). 화면1~4 합계와 대조하는 행이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<3){o.rl.forEach(function(r){if(/^화면[1-4]/.test(r.src||''))r.on=false;if(/판매수익/.test(r.src||'')){r.on=true;r.kind='해외주식';r.src='토스증권 · 판매수익 (해외 합계)';r.memo='토스증권 한 곳 합계, +12.1%. 화면1~4는 같은 토스증권의 세부 화면이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<4){o.rl.forEach(function(r){var m=/^화면([1-4])/.exec(r.src||'');if(m){r.on=true;r.kind='해외주식';r.src=r.src.replace(/^화면(\d) · .*$/,function(_,d){return '토스증권 계좌'+d+' (화면'+d+(d==='4'?', 01-25~11-25':'')+')';});}if(/판매수익/.test(r.src||'')){r.on=false;r.src='토스 양도소득세 · 판매수익 (대조용)';r.memo='+12.1%. 계좌1~4 합계 5,502,410원과 대조하는 행이라 합산에서 뺐습니다. 차이 78,299원.';}});}if(o.rl&&(o.rlVer||0)<5){o.rl.forEach(function(r){if(/판매수익/.test(r.src||'')){r.on=true;r.src='토스증권 · 판매수익';r.memo='토스증권 양도소득세 화면, +12.1%';}});}o.rlVer=5;if(!o.rl){o.rl=rlNew().map(function(r,i){r.id=i+1;return r;});}o.notes=o.notes||[];o.memos=o.memos||{};o.notes.forEach(function(n){o.memos[n.date]=(o.memos[n.date]?o.memos[n.date]+' / ':'')+n.text;});o.notes=[];o.notes=o.notes||[];o.prices=o.prices||{};o.acct=o.acct||'전체';o.month=o.month||nowKey();
+  o.sim=o.sim||{};o.cp=o.cp||{drafts:[],cur:0,cfg:{},next:1};if(!o.pens)o.pens=[{id:1,acct:'퇴직연금 DC',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}];o.pc=o.pc||[];if((o.pensVer||0)<2){var mx=0;o.pens.forEach(function(p){mx=Math.max(mx,+p.id||0);if(p.id===1&&!p.kind)p.kind='원리금보장형';});pensNew().forEach(function(p){p.id=++mx;o.pens.push(p);});o.pensVer=2;}if((o.pensVer||0)<3){o.pens.forEach(function(p){if(!p.qty&&/TIGER 미국필라델피아반도체/.test(p.name||''))p.qty=86;});o.pensVer=3;}o.plans=o.plans||{};o.p30=o.p30||p30Def();if(o.rl&&(o.rlVer||0)<2){o.rl.forEach(function(r){if(/^화면4/.test(r.src||'')){r.kind='해외주식';r.on=true;r.memo='해외 실현손익';}if(/판매수익/.test(r.src||'')&&r.on===false){r.kind='해외주식';r.src='토스 양도소득세 · 판매수익 (대조용 합계)';r.memo='판매수익 +5,580,709원 (12.1%). 화면1~4 합계와 대조하는 행이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<3){o.rl.forEach(function(r){if(/^화면[1-4]/.test(r.src||''))r.on=false;if(/판매수익/.test(r.src||'')){r.on=true;r.kind='해외주식';r.src='토스증권 · 판매수익 (해외 합계)';r.memo='토스증권 한 곳 합계, +12.1%. 화면1~4는 같은 토스증권의 세부 화면이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<4){o.rl.forEach(function(r){var m=/^화면([1-4])/.exec(r.src||'');if(m){r.on=true;r.kind='해외주식';r.src=r.src.replace(/^화면(\d) · .*$/,function(_,d){return '토스증권 계좌'+d+' (화면'+d+(d==='4'?', 01-25~11-25':'')+')';});}if(/판매수익/.test(r.src||'')){r.on=false;r.src='토스 양도소득세 · 판매수익 (대조용)';r.memo='+12.1%. 계좌1~4 합계 5,502,410원과 대조하는 행이라 합산에서 뺐습니다. 차이 78,299원.';}});}if(o.rl&&(o.rlVer||0)<5){o.rl.forEach(function(r){if(/판매수익/.test(r.src||'')){r.on=true;r.src='토스증권 · 판매수익';r.memo='토스증권 양도소득세 화면, +12.1%';}});}o.rlVer=5;if(!o.rl){o.rl=rlNew().map(function(r,i){r.id=i+1;return r;});}o.notes=o.notes||[];o.memos=o.memos||{};o.notes.forEach(function(n){o.memos[n.date]=(o.memos[n.date]?o.memos[n.date]+' / ':'')+n.text;});o.notes=[];o.notes=o.notes||[];o.prices=o.prices||{};o.acct=o.acct||'전체';o.month=o.month||nowKey();
   o.set=Object.assign({pcap:9000000,prate:0.132,auto:false,fx:FX0,cash:0,loan:0,taxRate:0.22,deduct:2500000},o.set||{});
   o.nextId=o.nextId||{};
   o.nextId.trades=Math.max(o.nextId.trades||1,Math.max.apply(null,[0].concat(o.trades.map(function(x){return +x.id||0;})))+1);
@@ -850,6 +851,61 @@ function vAll(){
   h+='</tbody><tfoot><tr><td class="l">합계 (입력 완료 종목)</td><td></td><td></td><td></td><td></td><td></td><td class="num">'+won(cost)+'</td><td class="num">'+won(val)+'</td><td class="num '+cl(pl)+'">'+sw(pl)+'</td><td class="num '+cl(ret)+'">'+spc(ret)+'</td><td></td></tr></tfoot></table></div><p class="note">모든 계좌의 같은 종목을 하나로 합쳤습니다. 평균단가 = 계좌별 매수금액 합계 ÷ 합산 수량입니다. 현재가는 시세 연동 값이며 수정은 종목·평단 탭에서 합니다. 코인·연금은 제외하고 주식만 표시합니다.</p></div>';
   return h;
 }
+
+/* ---------- 쿠팡 상품등록 ---------- */
+var CP_BASE='/v2/providers/seller_api/apis/api/v1/marketplace/seller-products';
+function cpNew(){var c=S.cp;return {id:c.next++,name:'',brand:'',cat:'',price:0,orig:0,cost:0,stock:100,maxBuy:0,ship:0,feeRate:10.8,imgs:'',desc:'',tags:'',made:'',sku:'',payload:'',sent:''};}
+function cpCur(){var c=S.cp,d=c.drafts.filter(function(x){return x.id===c.cur;})[0];return d||c.drafts[0]||null;}
+function cpMargin(d){var p=num(d.price),fee=p*num(d.feeRate)/100*1.1,m=p-fee-num(d.cost)-num(d.ship);return {fee:fee,m:m,r:p>0?m/p:0};}
+function cpPayload(d){var g=S.cp.cfg||{},imgs=String(d.imgs||'').split(/\s*\n\s*/).filter(Boolean);
+  return {vendorId:g.vendorId||'',sellerProductName:d.name,displayCategoryCode:num(d.cat)||0,saleStartedAt:new Date().toISOString().slice(0,19),saleEndedAt:'2099-01-01T23:59:59',
+   brand:d.brand,manufacture:d.made||d.brand,deliveryMethod:'SEQUENCIAL',deliveryCompanyCode:g.dc||'KGB',deliveryChargeType:num(d.ship)>0?'NOT_FREE':'FREE',deliveryCharge:num(d.ship),freeShipOverAmount:0,deliveryChargeOnReturn:num(d.ship)>0?num(d.ship)*2:5000,remoteAreaDeliverable:'N',unionDeliveryType:'NOT_UNION_DELIVERY',
+   returnCenterCode:g.ret||'',outboundShippingPlaceCode:g.out||'',vendorUserId:g.userId||'',requested:false,
+   items:[{itemName:d.name,originalPrice:num(d.orig)||num(d.price),salePrice:num(d.price),maximumBuyCount:num(d.stock),maximumBuyForPerson:num(d.maxBuy),maximumBuyForPersonPeriod:1,outboundShippingTimeDay:2,unitCount:1,adultOnly:'EVERYONE',taxType:'TAX',parallelImported:'NOT_PARALLEL_IMPORTED',overseasPurchased:'NOT_OVERSEAS_PURCHASED',externalVendorSku:d.sku||'',emptyBarcode:true,emptyBarcodeReason:'상품확인불가_바코드없음',offerCondition:'NEW',
+    certifications:[{certificationType:'NOT_REQUIRED',certificationCode:''}],searchTags:String(d.tags||'').split(/\s*,\s*/).filter(Boolean),
+    images:imgs.map(function(u,i){return {imageOrder:i,imageType:i?'DETAIL':'REPRESENTATION',vendorPath:u};}),
+    attributes:[],notices:[],contents:[{contentsType:'HTML',contentDetails:[{content:d.desc||'',detailType:'TEXT'}]}]}]};}
+function vCp(){
+  S.cp=S.cp||{drafts:[],cur:0,cfg:{},next:1};S.cp.cfg=S.cp.cfg||{};
+  var c=S.cp,g=c.cfg||{},d=cpCur();
+  var h='<div class="card"><h2>쿠팡 상품등록 <span class="sub">초안 작성 → 마진 확인 → 전송</span></h2>'
+   +'<div class="alert" style="margin-bottom:10px"><b>쿠팡 키는 이 페이지에 넣지 않습니다.</b> 키는 Cloudflare 서버(Pages Function)의 비밀값에만 저장합니다. 이 페이지는 서버 주소와 접근 코드만 씁니다. 서버가 없으면 초안과 마진 계산, JSON 만들기까지만 됩니다.</div>'
+   +'<div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><select id="cpSel" aria-label="초안">'+c.drafts.map(function(x){return '<option value="'+x.id+'"'+(d&&x.id===d.id?' selected':'')+'>'+esc(x.name||'(이름 없음)')+(x.sent?' ✓':'')+'</option>';}).join('')+'</select><button type="button" id="cpAdd">새 초안</button>'+(d?'<button type="button" class="ghost" id="cpDel">초안 삭제</button>':'')+'</div></div>';
+  if(d){var m=cpMargin(d);
+   var f=function(k,l,t,w){return '<label class="fld"><span>'+l+'</span><input data-cf="'+k+'" type="'+(t||'text')+'" '+(t==='number'?'step="any" ':'')+'value="'+esc(d[k])+'" style="'+(w||'width:100%')+'"></label>';};
+   h+='<div class="card"><h2>상품 정보</h2><div class="cpgrid">'+f('name','상품명')+f('brand','브랜드')+f('made','제조사')+f('cat','카테고리 코드','number')+f('sku','판매자 상품코드(SKU)')+f('tags','검색 태그 (쉼표로 구분)')+'</div>'
+    +'<h2 style="margin-top:14px">가격·재고</h2><div class="cpgrid">'+f('orig','정가 (원)','number')+f('price','판매가 (원)','number')+f('cost','원가 (원)','number')+f('ship','배송비 (원, 0=무료)','number')+f('stock','재고','number')+f('maxBuy','1인 최대 구매 (0=제한 없음)','number')+f('feeRate','수수료율 (%)','number')+'</div>'
+    +'<div class="tiles" style="margin-top:10px">'+tile('예상 수수료 (VAT 포함)',won(m.fee)+'원','판매가 '+won(num(d.price))+'원 × '+num(d.feeRate)+'% × 1.1')+tile('예상 마진',sw(m.m)+'원','원가 '+won(num(d.cost))+' · 배송비 '+won(num(d.ship)),cl(m.m))+tile('마진율',m.r?spc(m.r):'—','판매가 기준',cl(m.m))+'</div>'
+    +'<h2 style="margin-top:14px">이미지·상세</h2><label class="fld"><span>이미지 주소 (한 줄에 하나, 첫 줄이 대표 이미지)</span><textarea data-cf="imgs" rows="3" style="width:100%">'+esc(d.imgs)+'</textarea></label><label class="fld"><span>상세설명 (HTML)</span><textarea data-cf="desc" rows="5" style="width:100%">'+esc(d.desc)+'</textarea></label></div>';
+   var pj=d.payload||JSON.stringify(cpPayload(d),null,2);
+   h+='<div class="card"><h2>쿠팡에 보낼 데이터 <span class="sub">직접 고칠 수 있습니다</span></h2><textarea id="cpJson" rows="14" style="width:100%;font-family:monospace;font-size:12px">'+esc(pj)+'</textarea><div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button type="button" id="cpGen">위 정보로 다시 만들기</button><button type="button" id="cpSend" '+(S.set.cpApi?'':'disabled title="설정에서 서버 주소를 먼저 넣으세요"')+'>쿠팡에 전송</button></div><p class="note" id="cpRes">'+(d.sent?esc(d.sent):'전송 결과가 여기에 표시됩니다.')+'</p><p class="note">상품고시정보(notices)와 속성(attributes)은 카테고리마다 필수 항목이 달라 비워 두었습니다. 쿠팡 윙의 카테고리 필수 항목에 맞게 JSON에 직접 추가하세요. 처음에는 요청 승인(requested)을 false로 두어 임시저장 상태로 올립니다.</p></div>';}
+  h+='<div class="card"><h2>쿠팡 연결 설정</h2><div class="cpgrid">'
+   +'<label class="fld"><span>서버 주소 (예: https://내사이트.pages.dev)</span><input id="cpApi" value="'+esc(S.set.cpApi||'')+'" style="width:100%"></label>'
+   +'<label class="fld"><span>접근 코드</span><input id="cpCode" type="password" value="'+esc(S.set.cpCode||'')+'" style="width:100%" autocomplete="off"></label>'
+   +[['vendorId','판매자 ID (vendorId, A로 시작)'],['userId','윙 로그인 ID (vendorUserId)'],['out','출고지 코드'],['ret','반품지 코드'],['dc','택배사 코드 (기본 KGB)']].map(function(a){return '<label class="fld"><span>'+a[1]+'</span><input data-cg="'+a[0]+'" value="'+esc(g[a[0]]||'')+'" style="width:100%"></label>';}).join('')
+   +'</div><p class="note">접근 코드는 이 기기와 내 저장소에만 저장됩니다. 서버 설치 방법은 저장소의 README를 보세요.</p></div>';
+  return h;}
+function bindCp(){
+  var q=function(s,f){var e=document.querySelector(s);if(e)f(e);};
+  q('#cpAdd',function(e){e.onclick=function(){var d=cpNew();S.cp.drafts.push(d);S.cp.cur=d.id;save();render();};});
+  q('#cpDel',function(e){e.onclick=function(){var d=cpCur();if(!d||!confirm('이 초안을 삭제할까요?'))return;S.cp.drafts=S.cp.drafts.filter(function(x){return x.id!==d.id;});S.cp.cur=0;save();render();};});
+  q('#cpSel',function(e){e.onchange=function(){S.cp.cur=+e.value;save();render();};});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-cf]'),function(inp){inp.onchange=function(){var d=cpCur();if(!d)return;d[inp.getAttribute('data-cf')]=inp.value;d.payload='';save();render();};});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-cg]'),function(inp){inp.onchange=function(){S.cp.cfg[inp.getAttribute('data-cg')]=inp.value.trim();save();var d=cpCur();if(d)d.payload='';render();};});
+  q('#cpApi',function(e){e.onchange=function(){S.set.cpApi=e.value.trim().replace(/\/+$/,'');save();render();};});
+  q('#cpCode',function(e){e.onchange=function(){S.set.cpCode=e.value;save();};});
+  q('#cpJson',function(e){e.onchange=function(){var d=cpCur();if(d){d.payload=e.value;save();}};});
+  q('#cpGen',function(e){e.onclick=function(){var d=cpCur();if(d){d.payload='';save();render();}};});
+  q('#cpSend',function(e){e.onclick=async function(){var d=cpCur(),res=document.getElementById('cpRes'),body;
+    try{body=JSON.parse(document.getElementById('cpJson').value);}catch(x){res.textContent='JSON 형식 오류: '+x.message;return;}
+    if(!body.vendorId||!body.sellerProductName){res.textContent='판매자 ID와 상품명이 필요합니다.';return;}
+    if(!confirm('쿠팡에 상품을 전송할까요?\n'+body.sellerProductName))return;
+    res.textContent='전송 중…';
+    try{var r=await fetch(S.set.cpApi+'/api/coupang',{method:'POST',headers:{'content-type':'application/json','x-access-code':S.set.cpCode||''},body:JSON.stringify({method:'POST',path:CP_BASE,body:body})});
+      var t=await r.text();d.sent=(r.ok?'응답 ':'오류 ')+r.status+' · '+new Date().toLocaleTimeString('ko-KR')+' · '+t.slice(0,400);}
+    catch(x){d.sent='서버에 연결하지 못했습니다: '+x.message;}
+    save();res.textContent=d.sent;};});
+}
 function render(){
   var nav=document.getElementById('monthNav');
   var as=['전체'].concat(accts());
@@ -862,7 +918,7 @@ function render(){
   liveNote();
   var t=document.getElementById('tabs');t.innerHTML='';
   TABS.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x[1];if(x[0]===tab)b.className='on';b.onclick=function(){location.hash=x[0];};t.appendChild(b);});
-  var fn={dash:vDash,all:vAll,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
+  var fn={dash:vDash,all:vAll,cp:vCp,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
   document.getElementById('main').innerHTML=fn();
   bind();
   if(tab==='set')document.getElementById('backup').value=JSON.stringify(S);
@@ -902,6 +958,7 @@ function bind(){
   if(tab==='pen')bindPen();
   if(tab==='ana')bindAna();
   if(tab==='dash')bindP30();
+  if(tab==='cp')bindCp();
   if(tab==='rl')bindRl();
   if(tab==='notes')bindJournal();
   q('#noteForm',function(f){f.onsubmit=function(e){e.preventDefault();S.notes.push({id:S.nextId.notes++,date:v('nDate'),tag:v('nTag'),text:v('nText')});save();render();};});
