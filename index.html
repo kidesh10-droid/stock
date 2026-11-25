@@ -706,6 +706,8 @@ function vBtc(){
   C.ev.forEach(function(e){real+=e.real;});
   var pl=val-cost,ret=cost>0?pl/cost:0;
   var h='<section class="tiles">'+tile('총 평가금액',won(tv)+'원',H.length+'개 코인')+tile('총 매수금액 (입력 완료)',won(cost)+'원',inc?'입력 필요 '+inc+'개 제외':'전체 포함')+tile('평가손익',sw(pl)+'원',spc(ret),cl(pl))+tile('실현손익',sw(real)+'원','매도 기준',cl(real))+'</section>';
+  var ctl=H.filter(function(x){return MKT[x.tk+'-KRW'];}).map(function(x){var d=MKT[x.tk+'-KRW'];return mkTile(x.tk,d.src||'',d,function(v){return Math.round(v).toLocaleString('ko-KR')+'원';},false,'');}).join('');
+  if(ctl)h+='<div class="card"><h2>코인 시세 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준':'')+'</span></h2><div class="mk">'+ctl+'</div></div>';
   h+='<div class="card"><h2>거래 입력</h2><form class="form" id="cForm"><label class="f">날짜<input id="cDate" type="date" value="'+today()+'" required></label><label class="f">거래소<input id="cAcct" list="exList" value="업비트" required></label><datalist id="exList"><option value="업비트"><option value="빗썸"><option value="코인원"><option value="코빗"><option value="개인지갑"></datalist>'
    +'<label class="f">코인<input id="cTk" value="BTC" required></label><label class="f">구분<select id="cSide"><option>매수</option><option>매도</option><option>기초</option></select></label>'
    +'<label class="f">단가 (원)<input id="cP" class="n" type="number" step="any" min="0" required></label><label class="f">수량<input id="cQ" class="n" type="number" step="any" min="0" required></label><label class="f">수수료 (원)<input id="cFee" class="n" type="number" step="1" min="0"></label><label class="f">메모<input id="cMemo"></label><button class="pri" type="submit">추가</button></form>'
@@ -906,13 +908,26 @@ var MK=[
  {n:'SK하이닉스',s:'000660.KS',c:'000660',big:1,u:'원',hl:['SKHX','SKHYNIX'],krw:1},
  {n:'현대차',s:'005380.KS',c:'005380',big:1,u:'원',hl:['HYUNDAI','HYUNDAIMOTOR'],krw:1},
  {n:'나스닥100 선물',s:'NQ=F',c:'선물',big:1,u:'',hl:['XYZ100']},
- {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']}];
+ {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']},{n:'비트코인',s:'BTC-KRW',u:'원',int:1,coin:'BTC'}];
 async function hlPost(body){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},8000);var r=await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ac.signal});clearTimeout(tm);return r.ok?await r.json():null;}catch(e){return null;}}
 async function hlItem(coin,mid,mul){
   var now=Date.now(),cs=await hlPost({type:'candleSnapshot',req:{coin:coin,interval:'15m',startTime:now-86400000,endTime:now}});
   var arr=(cs&&cs.length)?cs:[],c=arr.map(function(x){return parseFloat(x.c);}).filter(function(x){return x>0;}),p=parseFloat(mid)>0?parseFloat(mid):(c.length?c[c.length-1]:0);
   if(!(p>0))return null;var o=arr.length?parseFloat(arr[0].o):0;
   return {p:p*mul,usd:p,prev:(o>0?o:p)*mul,c:c.map(function(x){return x*mul;}),t:now,src:'HL'};}
+async function jget(u,ms){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},ms||6000);var r=await fetch(u,{cache:'no-store',signal:ac.signal});clearTimeout(tm);return r.ok?await r.json():null;}catch(e){return null;}}
+var CG={BTC:'bitcoin',ETH:'ethereum',XRP:'ripple',SOL:'solana',DOGE:'dogecoin',ADA:'cardano'};
+async function coinFetch(tk){
+  var j=await jget('https://api.upbit.com/v1/ticker?markets=KRW-'+tk);
+  if(j&&j[0]&&j[0].trade_price>0){var t=j[0],cs=await jget('https://api.upbit.com/v1/candles/minutes/15?market=KRW-'+tk+'&count=96');
+    var c=(cs||[]).map(function(x){return x.trade_price;}).reverse();return {p:t.trade_price,prev:t.prev_closing_price>0?t.prev_closing_price:t.trade_price,c:c,t:Date.now(),src:'업비트'};}
+  j=await jget('https://api.bithumb.com/public/ticker/'+tk+'_KRW');
+  if(j&&j.data&&+j.data.closing_price>0){return {p:+j.data.closing_price,prev:+j.data.prev_closing_price>0?+j.data.prev_closing_price:+j.data.closing_price,c:[],t:Date.now(),src:'빗썸'};}
+  if(CG[tk]){j=await jget('https://api.coingecko.com/api/v3/simple/price?ids='+CG[tk]+'&vs_currencies=krw&include_24hr_change=true');var o=j&&j[CG[tk]];
+    if(o&&o.krw>0){var ch=(o.krw_24h_change||0)/100;return {p:o.krw,prev:o.krw/(1+ch),c:[],t:Date.now(),src:'코인게코'};}}
+  var mids=await hlPost({type:'allMids'});
+  if(mids&&parseFloat(mids[tk])>0){var d=await hlItem(tk,mids[tk],num(S.set.fx)||1350);if(d){d.src='HL';return d;}}
+  return null;}
 async function fxFetch(){
   var urls=['https://open.er-api.com/v6/latest/USD','https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'];
   for(var i=0;i<urls.length;i++){try{var r=await fetch(urls[i],{cache:'no-store'});if(!r.ok)continue;var j=await r.json();var v=j&&((j.rates&&j.rates.KRW)||(j.usd&&j.usd.krw));if(v>500&&v<3000)return +v;}catch(e){}}return 0;}
@@ -943,7 +958,7 @@ function vMkt(){
   MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true,MKT[x.s]&&MKT[x.s].src==='HL'?(x.krw?'$'+fi(MKT[x.s].usd)+' · ':'')+'24h 선물':'');});
   if(LIVE.t&&MK.filter(function(x){return !x.fxItem&&MKT[x.s]&&MKT[x.s].prev>0;}).length<MK.length-1)h+='<p class="note" style="margin:8px 0"><b>일부 시세는 야후 연결이 필요한데 막혀 있습니다.</b> 설정 탭의 시세 서버 주소에 Cloudflare Pages 주소를 넣으면 해결됩니다. 방법은 저장소의 README를 보세요.</p>';
   h+='</div><div class="mk">';
-  MK.filter(function(x){return !x.big;}).forEach(function(x){h+=mkTile(x.n,'',MKT[x.s],x.u==='원'?function(v){return fi(v)+'원';}:fi,false,MKT[x.s]&&MKT[x.s].src==='HL'?'24h 선물':'');});
+  MK.filter(function(x){return !x.big;}).forEach(function(x){h+=mkTile(x.n,'',MKT[x.s],x.int?fw:(x.u==='원'?function(v){return fi(v)+'원';}:fi),false,MKT[x.s]?(MKT[x.s].src==='HL'?'24h 선물':(MKT[x.s].src||'')):'');});
   h+='</div>';
   var mine=Object.keys(liveSyms()).filter(function(k){return MKT[k]&&/^[A-Z.\-]+$/.test(k)&&!/-KRW$/.test(k);});
   S.trades.forEach(function(t){});
@@ -972,6 +987,7 @@ async function liveRefresh(){
     var rest=[],hj=[];
     MK.forEach(function(x){
       if(x.fxItem){MKT[x.s]={p:fxu,prev:0,c:[],t:Date.now()};rest.push(x);return;}
+      if(x.coin){hj.push(coinFetch(x.coin).then(function(d){if(d){MKT[x.s]=d;if(S.prices[x.coin]!==undefined||liveSyms()[x.coin])S.prices[x.coin]=d.p;}}));return;}
       var coin=x.hl?pick(x.hl):null;
       if(!coin){rest.push(x);return;}
       hj.push(hlItem(coin,HLM[coin],x.krw?fxu:1).then(function(d){if(d)MKT[x.s]=d;else rest.push(x);}));});
@@ -983,10 +999,11 @@ async function liveRefresh(){
     var yoff=LIVE.yb&&(Date.now()-LIVE.yb)<600000,yon=false;
     if(!yoff){var pr=await liveFull('KRW=X');if(pr){yon=true;LIVE.d.y=true;MKT['KRW=X']=pr;if(pr.p>500&&pr.p<3000){fxu=pr.p;S.set.fx=Math.round(pr.p*100)/100;fx=pr.p;LIVE.fx=fx;}}else LIVE.yb=Date.now();}
     var jobs=[];
-    if(yon)rest.forEach(function(x){if(x.fxItem)return;jobs.push(liveFull(x.s).then(function(y){if(y)MKT[x.s]=y;}));});
+    if(yon)rest.forEach(function(x){if(x.fxItem||x.coin)return;jobs.push(liveFull(x.s).then(function(y){if(y)MKT[x.s]=y;}));});
     ks.forEach(function(k){var sy=syms[k];
       var tryHl=function(){return held[k]?hlItem(held[k],HLM[held[k]],1):Promise.resolve(null);};
-      var p=yon?liveFull(sy).then(function(d){return d||tryHl();}):tryHl();
+      var isC=/-KRW$/.test(sy);
+      var p=isC?coinFetch(k):(yon?liveFull(sy).then(function(d){return d||tryHl();}):tryHl());
       jobs.push(p.then(function(d){if(d){MKT[sy]=d;S.prices[k]=d.p;ok++;}else fail.push(k);}));});
     await Promise.all(jobs);
     LIVE.ok=ok;LIVE.fail=fail;
