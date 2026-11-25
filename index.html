@@ -154,7 +154,7 @@ html{-webkit-text-size-adjust:100%}
 <script>
 (function(){
 'use strict';
-var TABS=[['dash','대시보드'],['buy','신규 매수'],['btc','비트코인'],['pen','연금'],['ana','대응 분석'],['rl','실현손익'],['day','일자별 거래'],['msum','월별 집계'],['items','종목·평단'],['notes','매매일지'],['set','설정'],['help','사용 방법']];
+var TABS=[['dash','대시보드'],['all','합산'],['buy','신규 매수'],['btc','비트코인'],['pen','연금'],['ana','대응 분석'],['rl','실현손익'],['day','일자별 거래'],['msum','월별 집계'],['items','종목·평단'],['notes','매매일지'],['set','설정'],['help','사용 방법']];
 var AUTO=null;
 function autoOn(tk){return S.set.auto===true&&AUTO&&AUTO.prices&&AUTO.prices[tk]&&num(AUTO.prices[tk].p)>0;}
 function px(tk){return autoOn(tk)?num(AUTO.prices[tk].p):num(S.prices[tk]);}
@@ -830,6 +830,26 @@ function drawCharts(){
 }
 
 /* ---------- shell ---------- */
+
+function vAll(){
+  var sv=S.acct;S.acct='전체';var C;try{C=calc();}finally{S.acct=sv;}
+  var per={};S.acct='전체';
+  var as=accts();
+  as.forEach(function(a){S.acct=a;try{calc().H.forEach(function(x){per[x.mkt+'|'+x.tk]=per[x.mkt+'|'+x.tk]||{};per[x.mkt+'|'+x.tk][a]=x.qty;});}catch(e){}});
+  S.acct=sv;
+  var H=C.H,fx=num(S.set.fx)||1,cost=0,val=0,tv=0;
+  H.forEach(function(x){if(x.hasVal)tv+=x.valWon;if(x.hasCost&&x.hasVal){cost+=x.cost;val+=x.valWon;}});
+  var pl=val-cost,ret=cost>0?pl/cost:0;
+  var h='<section class="tiles">'+tile('합산 평가금액',won(tv)+'원','계좌 '+as.length+'개 · 종목 '+H.length+'개')
+   +tile('합산 매수금액',won(cost)+'원','같은 종목은 수량·평단을 합쳐 계산')
+   +tile('합산 평가손익',sw(pl)+'원',spc(ret),cl(pl))+'</section>';
+  h+='<div class="card"><h2>합산 보유 종목 ('+as.map(esc).join(' + ')+')</h2><div class="scroll"><table><thead><tr><th>종목</th><th>합산 수량</th><th class="l">계좌별 수량</th><th>평균단가 (원)</th><th>평균단가 ($)</th><th>현재가</th><th>매수금액</th><th>평가금액</th><th>손익</th><th>수익률</th><th>비중</th></tr></thead><tbody>';
+  H.forEach(function(x){var us=x.mkt==='US',pa=per[x.mkt+'|'+x.tk]||{};
+    var br=Object.keys(pa).filter(function(a){return pa[a]>0;}).map(function(a){return esc(a)+' '+pa[a].toLocaleString('ko-KR',{maximumFractionDigits:6});}).join(' · ');
+    h+='<tr class="'+(x.pl!==null&&x.pl<0?'neg-row':'')+'"><td class="l"><b>'+esc(x.tk)+'</b> <span class="pill">'+(us?'미국':'국내')+'</span></td><td class="num"><b>'+x.qty.toLocaleString('ko-KR',{maximumFractionDigits:6})+'</b></td><td class="l sub">'+br+'</td><td class="num">'+(x.hasCost?won(x.avgWon):'—')+'</td><td class="num">'+(x.hasCost&&us?'$'+x.avgUsd.toFixed(2):'—')+'</td><td class="num">'+(x.hasVal?(us?'$'+x.cur.toFixed(2):won(x.cur)):'—')+'</td><td class="num">'+(x.hasCost?won(x.cost):'—')+'</td><td class="num">'+(x.hasVal?won(x.valWon):'—')+'</td><td class="num '+cl(x.pl)+'">'+(x.pl===null?'—':sw(x.pl))+'</td><td class="num '+cl(x.ret)+'">'+(x.ret===null?'—':spc(x.ret))+'</td><td class="num">'+(tv>0&&x.hasVal?pc(x.valWon/tv):'—')+'</td></tr>';});
+  h+='</tbody><tfoot><tr><td class="l">합계 (입력 완료 종목)</td><td></td><td></td><td></td><td></td><td></td><td class="num">'+won(cost)+'</td><td class="num">'+won(val)+'</td><td class="num '+cl(pl)+'">'+sw(pl)+'</td><td class="num '+cl(ret)+'">'+spc(ret)+'</td><td></td></tr></tfoot></table></div><p class="note">모든 계좌의 같은 종목을 하나로 합쳤습니다. 평균단가 = 계좌별 매수금액 합계 ÷ 합산 수량입니다. 현재가는 시세 연동 값이며 수정은 종목·평단 탭에서 합니다. 코인·연금은 제외하고 주식만 표시합니다.</p></div>';
+  return h;
+}
 function render(){
   var nav=document.getElementById('monthNav');
   var as=['전체'].concat(accts());
@@ -842,7 +862,7 @@ function render(){
   liveNote();
   var t=document.getElementById('tabs');t.innerHTML='';
   TABS.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x[1];if(x[0]===tab)b.className='on';b.onclick=function(){location.hash=x[0];};t.appendChild(b);});
-  var fn={dash:vDash,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
+  var fn={dash:vDash,all:vAll,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
   document.getElementById('main').innerHTML=fn();
   bind();
   if(tab==='set')document.getElementById('backup').value=JSON.stringify(S);
