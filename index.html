@@ -855,7 +855,7 @@ function liveUrls(sym,range,interval){
   out.push(u,'https://api.allorigins.win/raw?url='+encodeURIComponent(u),'https://corsproxy.io/?'+encodeURIComponent(u));return out;}
 async function liveFull(sym){
   var tries=liveUrls(sym,'1d','5m');
-  for(var i=0;i<tries.length;i++){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},7000);var r=await fetch(tries[i],{cache:'no-store',signal:ac.signal});clearTimeout(tm);if(!r.ok)continue;var j=await r.json();var res=j&&j.chart&&j.chart.result&&j.chart.result[0];if(!res||!res.meta)continue;var m=res.meta,p=m.regularMarketPrice;if(!(p>0))continue;
+  for(var i=0;i<tries.length;i++){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},4000);var r=await fetch(tries[i],{cache:'no-store',signal:ac.signal});clearTimeout(tm);if(!r.ok)continue;var j=await r.json();var res=j&&j.chart&&j.chart.result&&j.chart.result[0];if(!res||!res.meta)continue;var m=res.meta,p=m.regularMarketPrice;if(!(p>0))continue;
     var cl2=((res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[]).filter(function(x){return x>0;});
     var prev=m.chartPreviousClose>0?m.chartPreviousClose:(m.previousClose>0?m.previousClose:0);
     return {p:p,prev:prev,c:cl2,t:Date.now()};}catch(e){}}
@@ -871,7 +871,7 @@ function mkTile(name,code,d,fmt,big,sub){
   return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">'+fmt(d.p)+'</div><div class="mch num '+cl(ch)+'">'+(d.prev>0?(up?'▲ ':'▼ ')+Math.abs(ch*100).toFixed(2)+'%':'—')+(sub?' <span class="mc">'+sub+'</span>':'')+'</div><div class="msp">'+spark(d.c,up,200,big?64:44)+'</div></div>';}
 function vMkt(){
   var fw=function(x){return Math.round(x).toLocaleString('ko-KR')+'원';},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});},fu=function(x){return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
-  var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신':'연결 대기')+'</span></h2><div class="mk big">';
+  var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신'+diagTxt():'연결 대기')+'</span></h2><div class="mk big">';
   MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true,MKT[x.s]&&MKT[x.s].src==='HL'?(x.krw?'$'+fi(MKT[x.s].usd)+' · ':'')+'24h 선물':'');});
   if(LIVE.t&&MK.filter(function(x){return !x.fxItem&&MKT[x.s]&&MKT[x.s].prev>0;}).length<MK.length-1)h+='<p class="note" style="margin:8px 0"><b>일부 시세는 야후 연결이 필요한데 막혀 있습니다.</b> 설정 탭의 시세 서버 주소에 Cloudflare Pages 주소를 넣으면 해결됩니다. 방법은 저장소의 README를 보세요.</p>';
   h+='</div><div class="mk">';
@@ -886,28 +886,46 @@ function vMkt(){
 function liveNote(){var an=document.getElementById('autoNote');if(!an)return;
   if(S.set.live===false){an.innerHTML='실시간 시세 꺼짐 · 현재가는 직접 입력한 값입니다 <button id="liveBtn" type="button" class="ghost">시세 새로고침</button>';}
   else if(LIVE.busy){an.textContent='시세 불러오는 중…';return;}
-  else if(LIVE.t&&LIVE.ok>0){an.innerHTML='야후 시세 '+new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 ('+LIVE.ok+'/'+LIVE.total+'개'+(LIVE.fail.length?' · 실패 '+LIVE.fail.join(', '):'')+(LIVE.fx?' · 환율 '+Math.round(LIVE.fx)+'원':'')+') <button id="liveBtn" type="button" class="ghost">새로고침</button>';}
-  else if(LIVE.t){an.innerHTML='시세 연결 실패 · 직접 입력한 현재가를 씁니다 <button id="liveBtn" type="button" class="ghost">다시 시도</button>';}
+  else if(LIVE.t&&LIVE.ok>0){an.innerHTML='시세 '+new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 ('+LIVE.ok+'/'+LIVE.total+'개'+(LIVE.fail.length?' · 실패 '+LIVE.fail.join(', '):'')+(LIVE.fx?' · 환율 '+Math.round(LIVE.fx)+'원':'')+')'+diagTxt()+' <button id="liveBtn" type="button" class="ghost">새로고침</button>';}
+  else if(LIVE.t){an.innerHTML='시세 일부 연결 실패 · 직접 입력한 현재가를 씁니다'+diagTxt()+' <button id="liveBtn" type="button" class="ghost">다시 시도</button>';}
   else{an.innerHTML='현재가는 직접 입력한 값입니다 <button id="liveBtn" type="button" class="ghost">시세 새로고침</button>';}
   var b=document.getElementById('liveBtn');if(b)b.onclick=function(){liveRefresh();};}
+function diagTxt(){var d=LIVE.d;if(!d)return '';return ' · 하이퍼리퀴드 '+(d.hl?'✓':'✗')+' · 환율 '+(d.fx?'✓':'✗')+' · 야후 '+(d.y?'✓':'✗');}
 async function liveRefresh(){
   if(LIVE.busy)return;LIVE.busy=true;liveNote();
-  var syms=liveSyms(),ks=Object.keys(syms),ok=0,fail=[],fx=await fxFetch();
-  if(fx>500&&fx<3000)S.set.fx=Math.round(fx*100)/100;
-  var fxu=num(S.set.fx)||1350;
-  var HLM=await hlPost({type:'allMids',dex:'xyz'});
-  var pick=function(c){if(!HLM)return null;for(var i=0;i<c.length;i++){if(HLM['xyz:'+c[i]]!==undefined)return 'xyz:'+c[i];}return null;};
-  var jobs=[];
-  MK.forEach(function(x){
-    if(x.fxItem){MKT[x.s]={p:fxu,prev:0,c:[],t:Date.now()};jobs.push(liveFull(x.s).then(function(d){if(d){MKT[x.s]=d;if(d.p>500&&d.p<3000){fxu=d.p;S.set.fx=Math.round(d.p*100)/100;fx=d.p;}}}));return;}
-    var coin=x.hl?pick(x.hl):null;
-    var job=coin?hlItem(coin,HLM[coin],x.krw?fxu:1):Promise.resolve(null);
-    jobs.push(job.then(function(d){if(d){MKT[x.s]=d;return d;}return liveFull(x.s).then(function(y){if(y)MKT[x.s]=y;return y;});}));});
-  ks.forEach(function(k){var sy=syms[k];jobs.push(liveFull(sy).then(function(d){if(d)return d;var coin=(HLM&&sy===k)?pick([k]):null;return coin?hlItem(coin,HLM[coin],1):null;}).then(function(d){if(d){MKT[sy]=d;S.prices[k]=d.p;ok++;}else fail.push(k);}));});
-  await Promise.all(jobs);
-  var mkOk=MK.filter(function(x){return !x.fxItem&&MKT[x.s]&&MKT[x.s].prev>0;}).length;
-  LIVE.busy=false;LIVE.t=Date.now();LIVE.ok=ok;LIVE.fail=fail;LIVE.fx=fx>0?fx:0;LIVE.total=ks.length;LIVE.fails=(ok+mkOk)>0?0:LIVE.fails+1;
-  if(ok>0||fx>0||mkOk>0){save();var a=document.activeElement,typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);if(!typing)render();else liveNote();}else liveNote();}
+  var syms=liveSyms(),ks=Object.keys(syms),ok=0,fail=[],fx=0;
+  var paint=function(){LIVE.t=Date.now();save();var a=document.activeElement,typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);if(!typing)render();else liveNote();};
+  try{
+    var r1=await Promise.all([fxFetch(),hlPost({type:'allMids',dex:'xyz'})]);
+    fx=r1[0];var HLM=r1[1];LIVE.d={fx:fx>0,hl:!!HLM,y:false};
+    if(fx>500&&fx<3000)S.set.fx=Math.round(fx*100)/100;
+    var fxu=num(S.set.fx)||1350;
+    var pick=function(c){if(!HLM)return null;for(var i=0;i<c.length;i++){if(HLM['xyz:'+c[i]]!==undefined)return 'xyz:'+c[i];}return null;};
+    var rest=[],hj=[];
+    MK.forEach(function(x){
+      if(x.fxItem){MKT[x.s]={p:fxu,prev:0,c:[],t:Date.now()};rest.push(x);return;}
+      var coin=x.hl?pick(x.hl):null;
+      if(!coin){rest.push(x);return;}
+      hj.push(hlItem(coin,HLM[coin],x.krw?fxu:1).then(function(d){if(d)MKT[x.s]=d;else rest.push(x);}));});
+    var held={};
+    ks.forEach(function(k){var sy=syms[k],coin=(HLM&&sy===k)?pick([k]):null;if(coin)held[k]=coin;});
+    await Promise.all(hj);
+    LIVE.ok=0;LIVE.fail=[];LIVE.total=ks.length;LIVE.fx=fx>0?fx:0;
+    paint();
+    var yoff=LIVE.yb&&(Date.now()-LIVE.yb)<600000,yon=false;
+    if(!yoff){var pr=await liveFull('KRW=X');if(pr){yon=true;LIVE.d.y=true;MKT['KRW=X']=pr;if(pr.p>500&&pr.p<3000){fxu=pr.p;S.set.fx=Math.round(pr.p*100)/100;fx=pr.p;LIVE.fx=fx;}}else LIVE.yb=Date.now();}
+    var jobs=[];
+    if(yon)rest.forEach(function(x){if(x.fxItem)return;jobs.push(liveFull(x.s).then(function(y){if(y)MKT[x.s]=y;}));});
+    ks.forEach(function(k){var sy=syms[k];
+      var tryHl=function(){return held[k]?hlItem(held[k],HLM[held[k]],1):Promise.resolve(null);};
+      var p=yon?liveFull(sy).then(function(d){return d||tryHl();}):tryHl();
+      jobs.push(p.then(function(d){if(d){MKT[sy]=d;S.prices[k]=d.p;ok++;}else fail.push(k);}));});
+    await Promise.all(jobs);
+    LIVE.ok=ok;LIVE.fail=fail;
+    var mkOk=MK.filter(function(x){return !x.fxItem&&MKT[x.s]&&MKT[x.s].prev>0;}).length;
+    LIVE.fails=(ok+mkOk)>0?0:LIVE.fails+1;
+  }catch(e){LIVE.fails++;}
+  LIVE.busy=false;paint();}
 function liveLoop(){setInterval(function(){if(S.set.live===false||LIVE.fails>=3||document.visibilityState==='hidden')return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;liveRefresh();},60000);}
 function setStatus(t,e){var s=document.getElementById('status');s.textContent=t;s.className='sub'+(e?' err':'');}
 function save(){try{localStorage.setItem('stk_v1',JSON.stringify(S));}catch(e){}clearTimeout(timer);setStatus('저장 중');timer=setTimeout(persist,700);}
