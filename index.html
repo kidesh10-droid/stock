@@ -546,6 +546,7 @@ function bindJournal(){
 }
 function vSet(){
   return '<div class="card"><h2>기본값</h2><div class="form"><label class="f">종가 자동 반영<select id="sAuto"><option value="1"'+(S.set.auto===true?' selected':'')+'>켜기</option><option value="0"'+(S.set.auto!==true?' selected':'')+'>끄기 (직접 입력)</option></select></label><label class="f">환율 (원/달러)<input id="sFx" class="n" type="number" step="0.1" value="'+S.set.fx+'"></label><label class="f">예수금 (원)<input id="sCash" class="n" type="number" step="1" value="'+S.set.cash+'"></label><label class="f">대출 (원)<input id="sLoan" class="n" type="number" step="1" value="'+S.set.loan+'"></label><label class="f">양도세율 (%)<input id="sTax" class="n" type="number" step="0.1" value="'+(S.set.taxRate*100)+'"></label><label class="f">기본공제 (원)<input id="sDed" class="n" type="number" step="1" value="'+S.set.deduct+'"></label></div><p class="note">예수금은 토스 화면의 현금성 대기자산 값을 넣어 둔 것이니 실제 금액으로 고치세요. 환율을 바꾸면 미국 종목 평가금액이 다시 계산됩니다.</p></div>'
+   +'<div class="card"><h2>실시간 시세</h2><label class="f" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="liveChk"'+(S.set.live===false?'':' checked')+'> 야후 파이낸스 시세를 열 때와 1분마다 자동 반영</label><p class="note">미국 종목, 코인(원화), 달러 환율을 가져와 현재가와 환율 칸을 덮어씁니다. 가져가는 정보는 티커 이름뿐이고 보유 수량이나 금액은 보내지 않습니다. 정규장 기준 가격이며 프리마켓이나 애프터마켓 가격은 아닙니다. 국내 종목은 직접 입력합니다. 이 기능은 GitHub 주소나 내려받은 파일에서 작동하고 Claude 안에서 여는 페이지에서는 막혀 있을 수 있습니다.</p></div>'
    +'<div class="card"><h2>데이터</h2><div class="bar"><button id="resetBtn" type="button">토스 화면 기준 값으로 되돌리기</button></div><p class="note" id="armMsg"></p><h2 style="margin-top:12px">백업과 복원</h2><textarea id="backup" aria-label="백업"></textarea><div class="bar" style="margin-top:8px"><button id="copyBtn" type="button">복사</button><button id="loadBtn" type="button">붙여넣은 내용 불러오기</button><span class="sub" id="bkMsg"></span></div></div>';
 }
 function vHelp(){
@@ -767,6 +768,7 @@ function render(){
   document.getElementById('nm').onclick=function(){S.month=addMonth(S.month,1);save();render();};
   var an=document.getElementById('autoNote');
   if(an){var ks=AUTO&&AUTO.prices?Object.keys(AUTO.prices):[];an.textContent=S.set.auto!==true?'종가 자동 반영 꺼짐 · 현재가는 직접 입력한 값입니다':(ks.length?'종가 자동 반영 중 · 기준일 '+(AUTO.asOf||'—')+' · '+ks.length+'개 종목'+(AUTO.source?' · 출처 '+AUTO.source:''):'종가 자료 없음 · 현재가는 직접 입력한 값입니다');}
+  liveNote();
   var t=document.getElementById('tabs');t.innerHTML='';
   TABS.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x[1];if(x[0]===tab)b.className='on';b.onclick=function(){location.hash=x[0];};t.appendChild(b);});
   var fn={dash:vDash,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
@@ -778,6 +780,7 @@ function render(){
 function bind(){
   var q=function(s,f){var e=document.querySelector(s);if(e)f(e);};
   Array.prototype.forEach.call(document.querySelectorAll('input.price'),function(inp){inp.onchange=function(){S.prices[inp.getAttribute('data-tk')]=num(inp.value);save();render();};});
+  q('#liveChk',function(c){c.onchange=function(){S.set.live=c.checked;save();if(c.checked)liveRefresh();else render();};});
   q('#trForm',function(f){f.onsubmit=function(e){e.preventDefault();
     S.trades.push({id:S.nextId.trades++,date:v('tDate'),acct:v('tAcct'),mkt:v('tMkt'),tk:v('tTk').trim(),side:v('tSide'),price:num(v('tPrice')),qty:num(v('tQty')),fx:num(v('tFx')),fee:num(v('tFee')),memo:v('tMemo')});
     S.month=mkey(v('tDate'));save();render();};});
@@ -820,6 +823,28 @@ function bind(){
 }
 
 /* ---------- persistence ---------- */
+var LIVE={busy:false,t:0,ok:0,fail:[],fails:0,fx:0,total:0};
+function liveSyms(){var m={};S.trades.forEach(function(t){var tk=String(t.tk).toUpperCase();if(t.mkt==='US'&&/^[A-Z][A-Z.\-]{0,5}$/.test(tk))m[tk]=tk;else if(t.mkt==='CR'&&/^[A-Z]{2,6}$/.test(tk))m[tk]=tk+'-KRW';});return m;}
+async function liveOne(sym){
+  var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=5d';
+  var tries=[u,'https://corsproxy.io/?'+encodeURIComponent(u),'https://api.allorigins.win/raw?url='+encodeURIComponent(u)];
+  for(var i=0;i<tries.length;i++){try{var r=await fetch(tries[i],{cache:'no-store'});if(!r.ok)continue;var j=await r.json();var m=j&&j.chart&&j.chart.result&&j.chart.result[0]&&j.chart.result[0].meta;if(m&&m.regularMarketPrice>0)return m.regularMarketPrice;}catch(e){}}
+  return 0;}
+function liveNote(){var an=document.getElementById('autoNote');if(!an)return;
+  if(S.set.live===false){an.innerHTML='실시간 시세 꺼짐 · 현재가는 직접 입력한 값입니다 <button id="liveBtn" type="button" class="ghost">시세 새로고침</button>';}
+  else if(LIVE.busy){an.textContent='시세 불러오는 중…';return;}
+  else if(LIVE.t&&LIVE.ok>0){an.innerHTML='야후 시세 '+new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 ('+LIVE.ok+'/'+LIVE.total+'개'+(LIVE.fail.length?' · 실패 '+LIVE.fail.join(', '):'')+(LIVE.fx?' · 환율 '+Math.round(LIVE.fx)+'원':'')+') <button id="liveBtn" type="button" class="ghost">새로고침</button>';}
+  else if(LIVE.t){an.innerHTML='시세 연결 실패 · 직접 입력한 현재가를 씁니다 <button id="liveBtn" type="button" class="ghost">다시 시도</button>';}
+  else{an.innerHTML='현재가는 직접 입력한 값입니다 <button id="liveBtn" type="button" class="ghost">시세 새로고침</button>';}
+  var b=document.getElementById('liveBtn');if(b)b.onclick=function(){liveRefresh();};}
+async function liveRefresh(){
+  if(LIVE.busy)return;LIVE.busy=true;liveNote();
+  var syms=liveSyms(),ks=Object.keys(syms),ok=0,fail=[];
+  var fx=await liveOne('KRW=X');if(fx>500&&fx<3000)S.set.fx=Math.round(fx*100)/100;
+  await Promise.all(ks.map(async function(k){var p=await liveOne(syms[k]);if(p>0){S.prices[k]=p;ok++;}else fail.push(k);}));
+  LIVE.busy=false;LIVE.t=Date.now();LIVE.ok=ok;LIVE.fail=fail;LIVE.fx=fx>0?fx:0;LIVE.total=ks.length;LIVE.fails=ok>0?0:LIVE.fails+1;
+  if(ok>0||fx>0){save();var a=document.activeElement,typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);if(!typing)render();else liveNote();}else liveNote();}
+function liveLoop(){setInterval(function(){if(S.set.live===false||LIVE.fails>=3||document.visibilityState==='hidden')return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;liveRefresh();},60000);}
 function setStatus(t,e){var s=document.getElementById('status');s.textContent=t;s.className='sub'+(e?' err':'');}
 function save(){try{localStorage.setItem('stk_v1',JSON.stringify(S));}catch(e){}clearTimeout(timer);setStatus('저장 중');timer=setTimeout(persist,700);}
 async function persist(){if(!remote){setStatus('이 브라우저에만 저장됨');return;}
@@ -841,6 +866,7 @@ async function load(){
 function route(){var h=location.hash.replace('#','');tab=TABS.some(function(x){return x[0]===h;})?h:'dash';if(S)render();}
 window.addEventListener('hashchange',route);
 S=seed();route();render();load();
+setTimeout(function(){liveRefresh();liveLoop();},1800);
 })();
 </script>
 </body>
