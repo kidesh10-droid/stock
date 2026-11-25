@@ -547,7 +547,7 @@ function bindJournal(){
 }
 function vSet(){
   return '<div class="card"><h2>기본값</h2><div class="form"><label class="f">종가 자동 반영<select id="sAuto"><option value="1"'+(S.set.auto===true?' selected':'')+'>켜기</option><option value="0"'+(S.set.auto!==true?' selected':'')+'>끄기 (직접 입력)</option></select></label><label class="f">환율 (원/달러)<input id="sFx" class="n" type="number" step="0.1" value="'+S.set.fx+'"></label><label class="f">예수금 (원)<input id="sCash" class="n" type="number" step="1" value="'+S.set.cash+'"></label><label class="f">대출 (원)<input id="sLoan" class="n" type="number" step="1" value="'+S.set.loan+'"></label><label class="f">양도세율 (%)<input id="sTax" class="n" type="number" step="0.1" value="'+(S.set.taxRate*100)+'"></label><label class="f">기본공제 (원)<input id="sDed" class="n" type="number" step="1" value="'+S.set.deduct+'"></label></div><p class="note">예수금은 토스 화면의 현금성 대기자산 값을 넣어 둔 것이니 실제 금액으로 고치세요. 환율을 바꾸면 미국 종목 평가금액이 다시 계산됩니다.</p></div>'
-   +'<div class="card"><h2>실시간 시세</h2><label class="f" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="liveChk"'+(S.set.live===false?'':' checked')+'> 야후 파이낸스 시세를 열 때와 1분마다 자동 반영</label><p class="note">미국 종목, 코인(원화), 달러 환율을 가져와 현재가와 환율 칸을 덮어씁니다. 가져가는 정보는 티커 이름뿐이고 보유 수량이나 금액은 보내지 않습니다. 정규장 기준 가격이며 프리마켓이나 애프터마켓 가격은 아닙니다. 국내 종목은 직접 입력합니다. 이 기능은 GitHub 주소나 내려받은 파일에서 작동하고 Claude 안에서 여는 페이지에서는 막혀 있을 수 있습니다.</p></div>'
+   +'<div class="card"><h2>실시간 시세</h2><label class="f" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="liveChk"'+(S.set.live===false?'':' checked')+'> 야후 파이낸스 시세를 열 때와 1분마다 자동 반영</label><label class="f" style="margin-top:10px">시세 서버 주소 (선택)<input id="apiUrl" value="'+esc(S.set.api||'')+'" placeholder="https://내사이트.pages.dev"></label><p class="note">미국 종목, 코인(원화), 달러 환율을 가져와 현재가와 환율 칸을 덮어씁니다. 가져가는 정보는 티커 이름뿐이고 보유 수량이나 금액은 보내지 않습니다. 정규장 기준 가격이며 프리마켓이나 애프터마켓 가격은 아닙니다. 국내 종목은 직접 입력합니다. 이 기능은 GitHub 주소나 내려받은 파일에서 작동하고 Claude 안에서 여는 페이지에서는 막혀 있을 수 있습니다.</p></div>'
    +'<div class="card"><h2>데이터</h2><div class="bar"><button id="resetBtn" type="button">토스 화면 기준 값으로 되돌리기</button></div><p class="note" id="armMsg"></p><h2 style="margin-top:12px">백업과 복원</h2><textarea id="backup" aria-label="백업"></textarea><div class="bar" style="margin-top:8px"><button id="copyBtn" type="button">복사</button><button id="loadBtn" type="button">붙여넣은 내용 불러오기</button><span class="sub" id="bkMsg"></span></div></div>';
 }
 function vHelp(){
@@ -781,6 +781,7 @@ function render(){
 function bind(){
   var q=function(s,f){var e=document.querySelector(s);if(e)f(e);};
   Array.prototype.forEach.call(document.querySelectorAll('input.price'),function(inp){inp.onchange=function(){S.prices[inp.getAttribute('data-tk')]=num(inp.value);save();render();};});
+  q('#apiUrl',function(e){e.onchange=function(){S.set.api=e.value.trim();save();liveRefresh();};});
   q('#liveChk',function(c){c.onchange=function(){S.set.live=c.checked;save();if(c.checked)liveRefresh();else render();};});
   q('#trForm',function(f){f.onsubmit=function(e){e.preventDefault();
     S.trades.push({id:S.nextId.trades++,date:v('tDate'),acct:v('tAcct'),mkt:v('tMkt'),tk:v('tTk').trim(),side:v('tSide'),price:num(v('tPrice')),qty:num(v('tQty')),fx:num(v('tFx')),fee:num(v('tFee')),memo:v('tMemo')});
@@ -834,9 +835,13 @@ async function liveOne(sym){
 var MKT={};
 var MK=[{n:'삼성전자',s:'005930.KS',c:'005930',big:1,u:'원'},{n:'SK하이닉스',s:'000660.KS',c:'000660',big:1,u:'원'},{n:'현대차',s:'005380.KS',c:'005380',big:1,u:'원'},{n:'나스닥100 선물',s:'NQ=F',c:'선물',big:1,u:''},
  {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원'},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:''}];
+function liveUrls(sym,range,interval){
+  var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval='+interval+'&range='+range,out=[];
+  var b=S.set.api?String(S.set.api).replace(/\/+$/,''):((typeof location!=='undefined'&&/pages\.dev$/.test(location.hostname||''))?'':null);
+  if(b!==null)out.push(b+'/api/chart?s='+encodeURIComponent(sym)+'&range='+range+'&interval='+interval);
+  out.push(u,'https://api.allorigins.win/raw?url='+encodeURIComponent(u),'https://corsproxy.io/?'+encodeURIComponent(u));return out;}
 async function liveFull(sym){
-  var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=5m&range=1d';
-  var tries=[u,'https://corsproxy.io/?'+encodeURIComponent(u),'https://api.allorigins.win/raw?url='+encodeURIComponent(u)];
+  var tries=liveUrls(sym,'1d','5m');
   for(var i=0;i<tries.length;i++){try{var r=await fetch(tries[i],{cache:'no-store'});if(!r.ok)continue;var j=await r.json();var res=j&&j.chart&&j.chart.result&&j.chart.result[0];if(!res||!res.meta)continue;var m=res.meta,p=m.regularMarketPrice;if(!(p>0))continue;
     var cl2=((res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[]).filter(function(x){return x>0;});
     var prev=m.chartPreviousClose>0?m.chartPreviousClose:(m.previousClose>0?m.previousClose:0);
@@ -855,6 +860,7 @@ function vMkt(){
   var fw=function(x){return Math.round(x).toLocaleString('ko-KR')+'원';},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});},fu=function(x){return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
   var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신':'연결 대기')+'</span></h2><div class="mk big">';
   MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true);});
+  if(LIVE.t&&!MK.some(function(x){return MKT[x.s];}))h+='<p class="note" style="margin:8px 0"><b>야후 직접 연결이 브라우저에서 막혔습니다.</b> 설정 탭의 시세 서버 주소에 Cloudflare Pages 주소를 넣으면 해결됩니다. 방법은 저장소의 README를 보세요.</p>';
   h+='</div><div class="mk">';
   MK.filter(function(x){return !x.big;}).forEach(function(x){h+=mkTile(x.n,'',MKT[x.s],x.u==='원'?function(v){return fi(v)+'원';}:fi,false);});
   h+='</div>';
