@@ -180,7 +180,7 @@ function v(id){var e=document.getElementById(id);return e?e.value:'';}
 var FX0=1350;
 function seed(){
   var d=today(),id=1,T=[];
-  function add(acct,mkt,tk,krwAvg,qty){T.push({id:id++,date:d,acct:acct,mkt:mkt,tk:tk,side:'기초',price:mkt==='US'?krwAvg/FX0:krwAvg,qty:qty,fx:mkt==='US'?FX0:0,fee:0,memo:'토스 평균가 기준 합산'});}
+  function add(acct,mkt,tk,krwAvg,qty){T.push({id:id++,date:'2026-11-24',acct:acct,mkt:mkt,tk:tk,side:'기초',price:mkt==='US'?krwAvg/FX0:krwAvg,qty:qty,fx:mkt==='US'?FX0:0,fee:0,memo:'토스 평균가 기준 합산'});}
   add('내 계좌','US','TQQQ',60712,322.096271);
   add('내 계좌','US','TSLL',26070,195.405027);
   add('내 계좌','US','PLTU',110691,35.80866);
@@ -197,9 +197,10 @@ function seed(){
   add('어머니 계좌','US','SOXL',174821,12.052898);
   add('어머니 계좌','US','SNXX',39085,0.082384);
   var P={TQQQ:56955,TSLL:12589,PLTU:47617,SOXL:37835,TSLS:69974,SNXX:1921,KORU:6516,RAM:4648,NVDA:198474};
+  sellsNew().forEach(function(t){t.id=id++;T.push(t);});
   var prices={};Object.keys(P).forEach(function(k){prices[k]=+(P[k]/FX0).toFixed(4);});
-  return {v:1,acct:'전체',month:nowKey(),trades:T,prices:prices,notes:[],
-    set:{pcap:9000000,prate:0.132,fx:FX0,cash:5828186,loan:0,taxRate:0.22,deduct:2500000},rlVer:5,rl:rlNew().map(function(r,i){r.id=i+1;return r;}),pensVer:3,pens:[{id:1,acct:'퇴직연금 DC',kind:'원리금보장형',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}].concat(pensNew().map(function(p,i){p.id=i+2;return p;})),pc:[],sim:{},memos:(function(){var m={};m[d]='토스 화면 기준으로 평균단가와 현재가를 입력했습니다.';return m;})(),jtab:'ALL',nextId:{trades:id,notes:2}};
+  return {v:1,sellVer:1,acct:'전체',month:nowKey(),trades:T,prices:prices,notes:[],
+    set:{pcap:9000000,prate:0.132,fx:FX0,cash:5828186,loan:0,taxRate:0.22,deduct:2500000},rlVer:6,rl:rlNew().map(function(r,i){r.id=i+1;return r;}),pensVer:3,pens:[{id:1,acct:'퇴직연금 DC',kind:'원리금보장형',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}].concat(pensNew().map(function(p,i){p.id=i+2;return p;})),pc:[],sim:{},memos:(function(){var m={};m[d]='토스 화면 기준으로 평균단가와 현재가를 입력했습니다.';return m;})(),jtab:'ALL',nextId:{trades:id,notes:2}};
 }
 function norm(o){if(!o||!Array.isArray(o.trades))return null;
   o.sim=o.sim||{};if(!o.pens)o.pens=[{id:1,acct:'퇴직연금 DC',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}];o.pc=o.pc||[];if((o.pensVer||0)<2){var mx=0;o.pens.forEach(function(p){mx=Math.max(mx,+p.id||0);if(p.id===1&&!p.kind)p.kind='원리금보장형';});pensNew().forEach(function(p){p.id=++mx;o.pens.push(p);});o.pensVer=2;}if((o.pensVer||0)<3){o.pens.forEach(function(p){if(!p.qty&&/TIGER 미국필라델피아반도체/.test(p.name||''))p.qty=86;});o.pensVer=3;}o.plans=o.plans||{};o.p30=o.p30||p30Def();if(o.rl&&(o.rlVer||0)<2){o.rl.forEach(function(r){if(/^화면4/.test(r.src||'')){r.kind='해외주식';r.on=true;r.memo='해외 실현손익';}if(/판매수익/.test(r.src||'')&&r.on===false){r.kind='해외주식';r.src='토스 양도소득세 · 판매수익 (대조용 합계)';r.memo='판매수익 +5,580,709원 (12.1%). 화면1~4 합계와 대조하는 행이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<3){o.rl.forEach(function(r){if(/^화면[1-4]/.test(r.src||''))r.on=false;if(/판매수익/.test(r.src||'')){r.on=true;r.kind='해외주식';r.src='토스증권 · 판매수익 (해외 합계)';r.memo='토스증권 한 곳 합계, +12.1%. 화면1~4는 같은 토스증권의 세부 화면이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<4){o.rl.forEach(function(r){var m=/^화면([1-4])/.exec(r.src||'');if(m){r.on=true;r.kind='해외주식';r.src=r.src.replace(/^화면(\d) · .*$/,function(_,d){return '토스증권 계좌'+d+' (화면'+d+(d==='4'?', 01-25~11-25':'')+')';});}if(/판매수익/.test(r.src||'')){r.on=false;r.src='토스 양도소득세 · 판매수익 (대조용)';r.memo='+12.1%. 계좌1~4 합계 5,502,410원과 대조하는 행이라 합산에서 뺐습니다. 차이 78,299원.';}});}if(o.rl&&(o.rlVer||0)<5){o.rl.forEach(function(r){if(/판매수익/.test(r.src||'')){r.on=true;r.src='토스증권 · 판매수익';r.memo='토스증권 양도소득세 화면, +12.1%';}});}o.rlVer=5;if(!o.rl){o.rl=rlNew().map(function(r,i){r.id=i+1;return r;});}o.notes=o.notes||[];o.memos=o.memos||{};o.notes.forEach(function(n){o.memos[n.date]=(o.memos[n.date]?o.memos[n.date]+' / ':'')+n.text;});o.notes=[];o.notes=o.notes||[];o.prices=o.prices||{};o.acct=o.acct||'전체';o.month=o.month||nowKey();
@@ -207,10 +208,24 @@ function norm(o){if(!o||!Array.isArray(o.trades))return null;
   o.nextId=o.nextId||{};
   o.nextId.trades=Math.max(o.nextId.trades||1,Math.max.apply(null,[0].concat(o.trades.map(function(x){return +x.id||0;})))+1);
   o.nextId.notes=Math.max(o.nextId.notes||1,Math.max.apply(null,[0].concat(o.notes.map(function(x){return +x.id||0;})))+1);
+  if((o.sellVer||0)<1){
+    o.trades.forEach(function(t){if(t.side==='기초'&&t.date>'2026-11-25'&&/토스 평균가 기준 합산/.test(t.memo||''))t.date='2026-11-24';});
+    var has=o.trades.some(function(t){return String(t.memo||'').indexOf(SELL_TAG)>=0;});
+    if(!has)sellsNew().forEach(function(t){t.id=o.nextId.trades++;o.trades.push(t);});
+    o.memos=o.memos||{};var mk0='2026-11-25';o.memos[mk0]=(o.memos[mk0]?o.memos[mk0]+' / ':'')+'TSLL 100주, PLTU 18주 손절';
+    o.sellVer=1;}
+  if((o.rlVer||0)<6){
+    o.rl=o.rl||[];var mx2=0;o.rl.forEach(function(r){mx2=Math.max(mx2,+r.id||0);});
+    rlNew().forEach(function(r){if(/손절 \(11\/25|11\/25\)/.test(r.src)&&!o.rl.some(function(x){return x.src===r.src;})){r.id=++mx2;o.rl.push(r);}});
+    o.rlVer=6;}
   return o;}
 
 /* ---------- calc ---------- */
 var PKIND=['현금성자산','ETF','원리금보장형','펀드','기타'];
+var SELL_TAG='손절 11/25';
+function sellsNew(){return [
+ {date:'2026-11-25',acct:'내 계좌',mkt:'US',tk:'TSLL',side:'매도',price:8.635,qty:100,fx:1343.61,fee:1074,memo:'TSLL 100주 '+SELL_TAG},
+ {date:'2026-11-25',acct:'내 계좌',mkt:'US',tk:'PLTU',side:'매도',price:34.8647,qty:18,fx:1343.61,fee:2364,memo:'PLTU 18주 '+SELL_TAG+' (토스 최종수익 −1,151,628원)'}];}
 var RKIND=['해외주식','국내주식','배당·이자','기타'];
 function rlNew(){return [
  {year:'2026',on:true,src:'토스증권 계좌1 (화면1)',kind:'해외주식',real:-1363581,sell:5819941,buy:7171775,fee:11747,memo:'GLLD −15,912 · TSLL −416,526 · PLTU −732,928 외 (화면에 일부만 보임). 실현손익 = 매매손익 −1,351,834 − 제비용'},
@@ -218,6 +233,8 @@ function rlNew(){return [
  {year:'2026',on:true,src:'토스증권 계좌3 (화면3)',kind:'해외주식',real:249756,sell:444312,buy:193981,fee:575,memo:'NVDL +249,756 (+128.75%)'},
  {year:'2026',on:true,src:'토스증권 계좌4 (화면4, 01-25~11-25)',kind:'해외주식',real:2950280,sell:0,buy:0,fee:0,memo:'해외 실현손익 (원화 기준 조회)'},
  {year:'2026',on:true,src:'토스증권 · 판매수익',kind:'해외주식',real:5580709,sell:0,buy:0,fee:0,memo:'토스증권 양도소득세 화면, +12.1%'},
+ {year:'2026',on:true,src:'TSLL 100주 손절 (11/25)',kind:'해외주식',real:-1459889,sell:1160198,buy:2616663,fee:3424,memo:'매매손익 −1,456,465 − 제비용 3,424 · 실현손익률 −55.79%'},
+ {year:'2026',on:true,src:'PLTU 18주 손절 (11/25, 토스)',kind:'해외주식',real:-1151628,sell:843188,buy:1992452,fee:2364,memo:'판매수익 −1,149,264 · 수수료 −2,351 · 제세금 −13 · 최종 −57.7%'},
  {year:'2026',on:true,src:'토스 양도소득세 · 배당금',kind:'배당·이자',real:378766,sell:0,buy:0,fee:0,memo:''},
  {year:'2026',on:true,src:'토스 양도소득세 · 계좌이자',kind:'배당·이자',real:32494,sell:0,buy:0,fee:0,memo:''}];}
 function rlYear(y){var o={ovs:0,dom:0,div:0,etc:0,all:0};S.rl.forEach(function(r){if(!r.on||String(r.year)!==String(y))return;var x=num(r.real);o.all+=x;if(r.kind==='해외주식')o.ovs+=x;else if(r.kind==='국내주식')o.dom+=x;else if(r.kind==='배당·이자')o.div+=x;else o.etc+=x;});
