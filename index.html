@@ -547,7 +547,7 @@ function bindJournal(){
 }
 function vSet(){
   return '<div class="card"><h2>기본값</h2><div class="form"><label class="f">종가 자동 반영<select id="sAuto"><option value="1"'+(S.set.auto===true?' selected':'')+'>켜기</option><option value="0"'+(S.set.auto!==true?' selected':'')+'>끄기 (직접 입력)</option></select></label><label class="f">환율 (원/달러)<input id="sFx" class="n" type="number" step="0.1" value="'+S.set.fx+'"></label><label class="f">예수금 (원)<input id="sCash" class="n" type="number" step="1" value="'+S.set.cash+'"></label><label class="f">대출 (원)<input id="sLoan" class="n" type="number" step="1" value="'+S.set.loan+'"></label><label class="f">양도세율 (%)<input id="sTax" class="n" type="number" step="0.1" value="'+(S.set.taxRate*100)+'"></label><label class="f">기본공제 (원)<input id="sDed" class="n" type="number" step="1" value="'+S.set.deduct+'"></label></div><p class="note">예수금은 토스 화면의 현금성 대기자산 값을 넣어 둔 것이니 실제 금액으로 고치세요. 환율을 바꾸면 미국 종목 평가금액이 다시 계산됩니다.</p></div>'
-   +'<div class="card"><h2>실시간 시세</h2><label class="f" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="liveChk"'+(S.set.live===false?'':' checked')+'> 야후 파이낸스 시세를 열 때와 1분마다 자동 반영</label><label class="f" style="margin-top:10px">시세 서버 주소 (선택)<input id="apiUrl" value="'+esc(S.set.api||'')+'" placeholder="https://내사이트.pages.dev"></label><p class="note">미국 종목, 코인(원화), 달러 환율을 가져와 현재가와 환율 칸을 덮어씁니다. 가져가는 정보는 티커 이름뿐이고 보유 수량이나 금액은 보내지 않습니다. 정규장 기준 가격이며 프리마켓이나 애프터마켓 가격은 아닙니다. 국내 종목은 직접 입력합니다. 이 기능은 GitHub 주소나 내려받은 파일에서 작동하고 Claude 안에서 여는 페이지에서는 막혀 있을 수 있습니다.</p></div>'
+   +'<div class="card"><h2>실시간 시세</h2><label class="f" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="liveChk"'+(S.set.live===false?'':' checked')+'> 야후 파이낸스 시세를 열 때와 1분마다 자동 반영</label><label class="f" style="margin-top:10px">시세 서버 주소 (선택)<input id="apiUrl" value="'+esc(S.set.api||'')+'" placeholder="https://내사이트.pages.dev"></label><p class="note">삼성전자, SK하이닉스, 현대차, 나스닥100, S&P500은 하이퍼리퀴드(trade.xyz)의 24시간 선물 가격을 그대로 쓰고 달러는 원/달러 환율로 바꿉니다. 코스피와 코스닥 같은 지수는 야후 파이낸스에서 가져옵니다. 미국 종목, 코인(원화), 달러 환율을 가져와 현재가와 환율 칸을 덮어씁니다. 가져가는 정보는 티커 이름뿐이고 보유 수량이나 금액은 보내지 않습니다. 정규장 기준 가격이며 프리마켓이나 애프터마켓 가격은 아닙니다. 국내 종목은 직접 입력합니다. 이 기능은 GitHub 주소나 내려받은 파일에서 작동하고 Claude 안에서 여는 페이지에서는 막혀 있을 수 있습니다.</p></div>'
    +'<div class="card"><h2>데이터</h2><div class="bar"><button id="resetBtn" type="button">토스 화면 기준 값으로 되돌리기</button></div><p class="note" id="armMsg"></p><h2 style="margin-top:12px">백업과 복원</h2><textarea id="backup" aria-label="백업"></textarea><div class="bar" style="margin-top:8px"><button id="copyBtn" type="button">복사</button><button id="loadBtn" type="button">붙여넣은 내용 불러오기</button><span class="sub" id="bkMsg"></span></div></div>';
 }
 function vHelp(){
@@ -833,8 +833,21 @@ async function liveOne(sym){
   for(var i=0;i<tries.length;i++){try{var r=await fetch(tries[i],{cache:'no-store'});if(!r.ok)continue;var j=await r.json();var m=j&&j.chart&&j.chart.result&&j.chart.result[0]&&j.chart.result[0].meta;if(m&&m.regularMarketPrice>0)return m.regularMarketPrice;}catch(e){}}
   return 0;}
 var MKT={};
-var MK=[{n:'삼성전자',s:'005930.KS',c:'005930',big:1,u:'원'},{n:'SK하이닉스',s:'000660.KS',c:'000660',big:1,u:'원'},{n:'현대차',s:'005380.KS',c:'005380',big:1,u:'원'},{n:'나스닥100 선물',s:'NQ=F',c:'선물',big:1,u:''},
- {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원'},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:''}];
+var MK=[
+ {n:'삼성전자',s:'005930.KS',c:'005930',big:1,u:'원',hl:['SMSN','SAMSUNG'],krw:1},
+ {n:'SK하이닉스',s:'000660.KS',c:'000660',big:1,u:'원',hl:['SKHX','SKHYNIX'],krw:1},
+ {n:'현대차',s:'005380.KS',c:'005380',big:1,u:'원',hl:['HYUNDAI','HYUNDAIMOTOR'],krw:1},
+ {n:'나스닥100 선물',s:'NQ=F',c:'선물',big:1,u:'',hl:['XYZ100']},
+ {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']}];
+async function hlPost(body){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},8000);var r=await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ac.signal});clearTimeout(tm);return r.ok?await r.json():null;}catch(e){return null;}}
+async function hlItem(coin,mid,mul){
+  var now=Date.now(),cs=await hlPost({type:'candleSnapshot',req:{coin:coin,interval:'15m',startTime:now-86400000,endTime:now}});
+  var arr=(cs&&cs.length)?cs:[],c=arr.map(function(x){return parseFloat(x.c);}).filter(function(x){return x>0;}),p=parseFloat(mid)>0?parseFloat(mid):(c.length?c[c.length-1]:0);
+  if(!(p>0))return null;var o=arr.length?parseFloat(arr[0].o):0;
+  return {p:p*mul,usd:p,prev:(o>0?o:p)*mul,c:c.map(function(x){return x*mul;}),t:now,src:'HL'};}
+async function fxFetch(){
+  var urls=['https://open.er-api.com/v6/latest/USD','https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'];
+  for(var i=0;i<urls.length;i++){try{var r=await fetch(urls[i],{cache:'no-store'});if(!r.ok)continue;var j=await r.json();var v=j&&((j.rates&&j.rates.KRW)||(j.usd&&j.usd.krw));if(v>500&&v<3000)return +v;}catch(e){}}return 0;}
 function liveUrls(sym,range,interval){
   var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval='+interval+'&range='+range,out=[];
   var b=S.set.api?String(S.set.api).replace(/\/+$/,''):((typeof location!=='undefined'&&/pages\.dev$/.test(location.hostname||''))?'':null);
@@ -842,7 +855,7 @@ function liveUrls(sym,range,interval){
   out.push(u,'https://api.allorigins.win/raw?url='+encodeURIComponent(u),'https://corsproxy.io/?'+encodeURIComponent(u));return out;}
 async function liveFull(sym){
   var tries=liveUrls(sym,'1d','5m');
-  for(var i=0;i<tries.length;i++){try{var r=await fetch(tries[i],{cache:'no-store'});if(!r.ok)continue;var j=await r.json();var res=j&&j.chart&&j.chart.result&&j.chart.result[0];if(!res||!res.meta)continue;var m=res.meta,p=m.regularMarketPrice;if(!(p>0))continue;
+  for(var i=0;i<tries.length;i++){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},7000);var r=await fetch(tries[i],{cache:'no-store',signal:ac.signal});clearTimeout(tm);if(!r.ok)continue;var j=await r.json();var res=j&&j.chart&&j.chart.result&&j.chart.result[0];if(!res||!res.meta)continue;var m=res.meta,p=m.regularMarketPrice;if(!(p>0))continue;
     var cl2=((res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[]).filter(function(x){return x>0;});
     var prev=m.chartPreviousClose>0?m.chartPreviousClose:(m.previousClose>0?m.previousClose:0);
     return {p:p,prev:prev,c:cl2,t:Date.now()};}catch(e){}}
@@ -852,17 +865,17 @@ function spark(c,up,w,h){if(!c||c.length<2)return '<svg viewBox="0 0 '+w+' '+h+'
   for(var i=0;i<c.length;i+=st)pts.push((i/(c.length-1)*w).toFixed(1)+','+(h-3-(c[i]-mn)/rg*(h-6)).toFixed(1));
   pts.push(w+','+(h-3-(c[c.length-1]-mn)/rg*(h-6)).toFixed(1));
   return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="'+(up?'var(--pos)':'var(--neg)')+'" stroke-width="1.8" stroke-linejoin="round" points="'+pts.join(' ')+'"/></svg>';}
-function mkTile(name,code,d,fmt,big){
+function mkTile(name,code,d,fmt,big,sub){
   if(!d)return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">—</div><div class="mch num">연결 대기</div></div>';
   var ch=d.prev>0?d.p/d.prev-1:0,up=ch>=0;
-  return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">'+fmt(d.p)+'</div><div class="mch num '+cl(ch)+'">'+(up?'▲ ':'▼ ')+Math.abs(ch*100).toFixed(2)+'%</div><div class="msp">'+spark(d.c,up,200,big?64:44)+'</div></div>';}
+  return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">'+fmt(d.p)+'</div><div class="mch num '+cl(ch)+'">'+(d.prev>0?(up?'▲ ':'▼ ')+Math.abs(ch*100).toFixed(2)+'%':'—')+(sub?' <span class="mc">'+sub+'</span>':'')+'</div><div class="msp">'+spark(d.c,up,200,big?64:44)+'</div></div>';}
 function vMkt(){
   var fw=function(x){return Math.round(x).toLocaleString('ko-KR')+'원';},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});},fu=function(x){return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
   var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신':'연결 대기')+'</span></h2><div class="mk big">';
-  MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true);});
-  if(LIVE.t&&!MK.some(function(x){return MKT[x.s];}))h+='<p class="note" style="margin:8px 0"><b>야후 직접 연결이 브라우저에서 막혔습니다.</b> 설정 탭의 시세 서버 주소에 Cloudflare Pages 주소를 넣으면 해결됩니다. 방법은 저장소의 README를 보세요.</p>';
+  MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true,MKT[x.s]&&MKT[x.s].src==='HL'?(x.krw?'$'+fi(MKT[x.s].usd)+' · ':'')+'24h 선물':'');});
+  if(LIVE.t&&MK.filter(function(x){return !x.fxItem&&MKT[x.s]&&MKT[x.s].prev>0;}).length<MK.length-1)h+='<p class="note" style="margin:8px 0"><b>일부 시세는 야후 연결이 필요한데 막혀 있습니다.</b> 설정 탭의 시세 서버 주소에 Cloudflare Pages 주소를 넣으면 해결됩니다. 방법은 저장소의 README를 보세요.</p>';
   h+='</div><div class="mk">';
-  MK.filter(function(x){return !x.big;}).forEach(function(x){h+=mkTile(x.n,'',MKT[x.s],x.u==='원'?function(v){return fi(v)+'원';}:fi,false);});
+  MK.filter(function(x){return !x.big;}).forEach(function(x){h+=mkTile(x.n,'',MKT[x.s],x.u==='원'?function(v){return fi(v)+'원';}:fi,false,MKT[x.s]&&MKT[x.s].src==='HL'?'24h 선물':'');});
   h+='</div>';
   var mine=Object.keys(liveSyms()).filter(function(k){return MKT[k]&&/^[A-Z.\-]+$/.test(k)&&!/-KRW$/.test(k);});
   S.trades.forEach(function(t){});
@@ -879,14 +892,20 @@ function liveNote(){var an=document.getElementById('autoNote');if(!an)return;
   var b=document.getElementById('liveBtn');if(b)b.onclick=function(){liveRefresh();};}
 async function liveRefresh(){
   if(LIVE.busy)return;LIVE.busy=true;liveNote();
-  var syms=liveSyms(),ks=Object.keys(syms),ok=0,fail=[],done={};
+  var syms=liveSyms(),ks=Object.keys(syms),ok=0,fail=[],fx=await fxFetch();
+  if(fx>500&&fx<3000)S.set.fx=Math.round(fx*100)/100;
+  var fxu=num(S.set.fx)||1350;
+  var HLM=await hlPost({type:'allMids',dex:'xyz'});
+  var pick=function(c){if(!HLM)return null;for(var i=0;i<c.length;i++){if(HLM['xyz:'+c[i]]!==undefined)return 'xyz:'+c[i];}return null;};
   var jobs=[];
-  MK.forEach(function(x){done[x.s]=1;jobs.push(liveFull(x.s).then(function(d){if(d)MKT[x.s]=d;return d;}));});
-  var fxP=jobs[MK.findIndex(function(x){return x.s==='KRW=X';})];
-  ks.forEach(function(k){var sy=syms[k];jobs.push(liveFull(sy).then(function(d){if(d){MKT[sy]=d;S.prices[k]=d.p;ok++;}else fail.push(k);return d;}));});
+  MK.forEach(function(x){
+    if(x.fxItem){MKT[x.s]={p:fxu,prev:0,c:[],t:Date.now()};jobs.push(liveFull(x.s).then(function(d){if(d){MKT[x.s]=d;if(d.p>500&&d.p<3000){fxu=d.p;S.set.fx=Math.round(d.p*100)/100;fx=d.p;}}}));return;}
+    var coin=x.hl?pick(x.hl):null;
+    var job=coin?hlItem(coin,HLM[coin],x.krw?fxu:1):Promise.resolve(null);
+    jobs.push(job.then(function(d){if(d){MKT[x.s]=d;return d;}return liveFull(x.s).then(function(y){if(y)MKT[x.s]=y;return y;});}));});
+  ks.forEach(function(k){var sy=syms[k];jobs.push(liveFull(sy).then(function(d){if(d)return d;var coin=(HLM&&sy===k)?pick([k]):null;return coin?hlItem(coin,HLM[coin],1):null;}).then(function(d){if(d){MKT[sy]=d;S.prices[k]=d.p;ok++;}else fail.push(k);}));});
   await Promise.all(jobs);
-  var fxd=MKT['KRW=X'],fx=fxd?fxd.p:0;if(fx>500&&fx<3000)S.set.fx=Math.round(fx*100)/100;
-  var mkOk=MK.filter(function(x){return MKT[x.s];}).length;
+  var mkOk=MK.filter(function(x){return !x.fxItem&&MKT[x.s]&&MKT[x.s].prev>0;}).length;
   LIVE.busy=false;LIVE.t=Date.now();LIVE.ok=ok;LIVE.fail=fail;LIVE.fx=fx>0?fx:0;LIVE.total=ks.length;LIVE.fails=(ok+mkOk)>0?0:LIVE.fails+1;
   if(ok>0||fx>0||mkOk>0){save();var a=document.activeElement,typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);if(!typing)render();else liveNote();}else liveNote();}
 function liveLoop(){setInterval(function(){if(S.set.live===false||LIVE.fails>=3||document.visibilityState==='hidden')return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;liveRefresh();},60000);}
