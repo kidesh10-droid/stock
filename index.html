@@ -908,7 +908,8 @@ var MK=[
  {n:'SK하이닉스',s:'000660.KS',c:'000660',big:1,u:'원',hl:['SKHX','SKHYNIX'],krw:1},
  {n:'현대차',s:'005380.KS',c:'005380',big:1,u:'원',hl:['HYUNDAI','HYUNDAIMOTOR'],krw:1},
  {n:'나스닥100 선물',s:'NQ=F',c:'선물',big:1,u:'',hl:['XYZ100']},
- {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']},{n:'비트코인',s:'BTC-KRW',u:'원',int:1,coin:'BTC'}];
+ {n:'비트코인',s:'BTC-KRW',c:'BTC',big:1,u:'원',int:1,coin:'BTC'},
+ {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']}];
 async function hlPost(body){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},8000);var r=await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ac.signal});clearTimeout(tm);return r.ok?await r.json():null;}catch(e){return null;}}
 async function hlItem(coin,mid,mul){
   var now=Date.now(),cs=await hlPost({type:'candleSnapshot',req:{coin:coin,interval:'15m',startTime:now-86400000,endTime:now}});
@@ -955,7 +956,7 @@ function mkTile(name,code,d,fmt,big,sub){
 function vMkt(){
   var fw=function(x){return Math.round(x).toLocaleString('ko-KR')+'원';},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});},fu=function(x){return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
   var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신'+diagTxt():'연결 대기')+'</span></h2><div class="mk big">';
-  MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true,MKT[x.s]&&MKT[x.s].src==='HL'?(x.krw?'$'+fi(MKT[x.s].usd)+' · ':'')+'24h 선물':'');});
+  MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true,MKT[x.s]&&MKT[x.s].src==='HL'?(x.krw?'$'+fi(MKT[x.s].usd)+' · ':'')+'24h 선물':(x.coin&&MKT[x.s]?(MKT[x.s].src||''):''));});
   if(LIVE.t&&MK.filter(function(x){return !x.fxItem&&MKT[x.s]&&MKT[x.s].prev>0;}).length<MK.length-1)h+='<p class="note" style="margin:8px 0"><b>일부 시세는 야후 연결이 필요한데 막혀 있습니다.</b> 설정 탭의 시세 서버 주소에 Cloudflare Pages 주소를 넣으면 해결됩니다. 방법은 저장소의 README를 보세요.</p>';
   h+='</div><div class="mk">';
   MK.filter(function(x){return !x.big;}).forEach(function(x){h+=mkTile(x.n,'',MKT[x.s],x.int?fw:(x.u==='원'?function(v){return fi(v)+'원';}:fi),false,MKT[x.s]?(MKT[x.s].src==='HL'?'24h 선물':(MKT[x.s].src||'')):'');});
@@ -1035,6 +1036,7 @@ window.addEventListener('hashchange',route);
 S=seed();route();render();load();
 setTimeout(function(){liveRefresh();liveLoop();},1800);
 })();
+
 </script>
 </body>
 </html>
