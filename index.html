@@ -86,6 +86,7 @@ textarea{width:100%;min-height:96px;font-family:ui-monospace,Menlo,Consolas,mono
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 ol.ana{margin:0;padding:0;list-style:none;display:grid;gap:10px}ol.ana li{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}ol.ana li div{margin-top:4px;line-height:1.6}textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px}
 tr.off td{opacity:.5}
+.mk{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}.mk.big{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.mt{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}.mt.big{padding:14px 16px}.mn{font-weight:700;font-size:14px}.mc{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px}.mp{font-size:20px;font-weight:700;margin-top:4px}.mt.big .mp{font-size:26px}.mch{font-size:13px;font-weight:600;margin-top:2px}.msp{margin-top:6px}
 </style>
 </head>
 <body>
@@ -261,7 +262,7 @@ function vDash(){
   var pp=0,pv=0;(S.pens||[]).forEach(function(p){pp+=num(p.principal);pv+=num(p.value);});
   var allC=cost+cc+pp,allV=val+cv+pv,allPl=allV-allC,allAll=tv+cvAll+pv;
   var net=tv+coinV+penV+num(S.set.cash)-num(S.set.loan);
-  var h='';
+  var h=vMkt();
   h+='<section class="tiles">'
    +tile('전체 투자자산 (주식+코인+연금)',won(allAll)+'원','주식 '+won(tv)+' · 코인 '+won(cvAll)+' · 연금 '+won(pv))
    +tile('전체 투자 손익 (입력 완료분)',sw(allPl)+'원',allC>0?spc(allPl/allC):'—',cl(allPl))
@@ -830,6 +831,39 @@ async function liveOne(sym){
   var tries=[u,'https://corsproxy.io/?'+encodeURIComponent(u),'https://api.allorigins.win/raw?url='+encodeURIComponent(u)];
   for(var i=0;i<tries.length;i++){try{var r=await fetch(tries[i],{cache:'no-store'});if(!r.ok)continue;var j=await r.json();var m=j&&j.chart&&j.chart.result&&j.chart.result[0]&&j.chart.result[0].meta;if(m&&m.regularMarketPrice>0)return m.regularMarketPrice;}catch(e){}}
   return 0;}
+var MKT={};
+var MK=[{n:'삼성전자',s:'005930.KS',c:'005930',big:1,u:'원'},{n:'SK하이닉스',s:'000660.KS',c:'000660',big:1,u:'원'},{n:'현대차',s:'005380.KS',c:'005380',big:1,u:'원'},{n:'나스닥100 선물',s:'NQ=F',c:'선물',big:1,u:''},
+ {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원'},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:''}];
+async function liveFull(sym){
+  var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=5m&range=1d';
+  var tries=[u,'https://corsproxy.io/?'+encodeURIComponent(u),'https://api.allorigins.win/raw?url='+encodeURIComponent(u)];
+  for(var i=0;i<tries.length;i++){try{var r=await fetch(tries[i],{cache:'no-store'});if(!r.ok)continue;var j=await r.json();var res=j&&j.chart&&j.chart.result&&j.chart.result[0];if(!res||!res.meta)continue;var m=res.meta,p=m.regularMarketPrice;if(!(p>0))continue;
+    var cl2=((res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[]).filter(function(x){return x>0;});
+    var prev=m.chartPreviousClose>0?m.chartPreviousClose:(m.previousClose>0?m.previousClose:0);
+    return {p:p,prev:prev,c:cl2,t:Date.now()};}catch(e){}}
+  return null;}
+function spark(c,up,w,h){if(!c||c.length<2)return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'"></svg>';
+  var mn=Math.min.apply(null,c),mx=Math.max.apply(null,c),rg=(mx-mn)||1,st=c.length>120?Math.ceil(c.length/120):1,pts=[];
+  for(var i=0;i<c.length;i+=st)pts.push((i/(c.length-1)*w).toFixed(1)+','+(h-3-(c[i]-mn)/rg*(h-6)).toFixed(1));
+  pts.push(w+','+(h-3-(c[c.length-1]-mn)/rg*(h-6)).toFixed(1));
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="'+(up?'var(--pos)':'var(--neg)')+'" stroke-width="1.8" stroke-linejoin="round" points="'+pts.join(' ')+'"/></svg>';}
+function mkTile(name,code,d,fmt,big){
+  if(!d)return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">—</div><div class="mch num">연결 대기</div></div>';
+  var ch=d.prev>0?d.p/d.prev-1:0,up=ch>=0;
+  return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">'+fmt(d.p)+'</div><div class="mch num '+cl(ch)+'">'+(up?'▲ ':'▼ ')+Math.abs(ch*100).toFixed(2)+'%</div><div class="msp">'+spark(d.c,up,200,big?64:44)+'</div></div>';}
+function vMkt(){
+  var fw=function(x){return Math.round(x).toLocaleString('ko-KR')+'원';},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});},fu=function(x){return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신':'연결 대기')+'</span></h2><div class="mk big">';
+  MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true);});
+  h+='</div><div class="mk">';
+  MK.filter(function(x){return !x.big;}).forEach(function(x){h+=mkTile(x.n,'',MKT[x.s],x.u==='원'?function(v){return fi(v)+'원';}:fi,false);});
+  h+='</div>';
+  var mine=Object.keys(liveSyms()).filter(function(k){return MKT[k]&&/^[A-Z.\-]+$/.test(k)&&!/-KRW$/.test(k);});
+  S.trades.forEach(function(t){});
+  var held={};try{var a=S.acct;S.acct='전체';calc().H.forEach(function(x){if(x.mkt==='US')held[x.tk]=1;});S.acct=a;}catch(e){}
+  mine=mine.filter(function(k){return held[k];});
+  if(mine.length){h+='<h2 style="margin:14px 0 8px">내 종목</h2><div class="mk">';mine.forEach(function(k){h+=mkTile(k,'미국',MKT[k],fu,false);});h+='</div>';}
+  return h+'<p class="note">야후 파이낸스 기준이며 정규장 마지막 가격입니다. 지수와 선물은 지연될 수 있습니다. 빨간색은 상승, 파란색은 하락입니다.</p></div>';}
 function liveNote(){var an=document.getElementById('autoNote');if(!an)return;
   if(S.set.live===false){an.innerHTML='실시간 시세 꺼짐 · 현재가는 직접 입력한 값입니다 <button id="liveBtn" type="button" class="ghost">시세 새로고침</button>';}
   else if(LIVE.busy){an.textContent='시세 불러오는 중…';return;}
@@ -839,11 +873,16 @@ function liveNote(){var an=document.getElementById('autoNote');if(!an)return;
   var b=document.getElementById('liveBtn');if(b)b.onclick=function(){liveRefresh();};}
 async function liveRefresh(){
   if(LIVE.busy)return;LIVE.busy=true;liveNote();
-  var syms=liveSyms(),ks=Object.keys(syms),ok=0,fail=[];
-  var fx=await liveOne('KRW=X');if(fx>500&&fx<3000)S.set.fx=Math.round(fx*100)/100;
-  await Promise.all(ks.map(async function(k){var p=await liveOne(syms[k]);if(p>0){S.prices[k]=p;ok++;}else fail.push(k);}));
-  LIVE.busy=false;LIVE.t=Date.now();LIVE.ok=ok;LIVE.fail=fail;LIVE.fx=fx>0?fx:0;LIVE.total=ks.length;LIVE.fails=ok>0?0:LIVE.fails+1;
-  if(ok>0||fx>0){save();var a=document.activeElement,typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);if(!typing)render();else liveNote();}else liveNote();}
+  var syms=liveSyms(),ks=Object.keys(syms),ok=0,fail=[],done={};
+  var jobs=[];
+  MK.forEach(function(x){done[x.s]=1;jobs.push(liveFull(x.s).then(function(d){if(d)MKT[x.s]=d;return d;}));});
+  var fxP=jobs[MK.findIndex(function(x){return x.s==='KRW=X';})];
+  ks.forEach(function(k){var sy=syms[k];jobs.push(liveFull(sy).then(function(d){if(d){MKT[sy]=d;S.prices[k]=d.p;ok++;}else fail.push(k);return d;}));});
+  await Promise.all(jobs);
+  var fxd=MKT['KRW=X'],fx=fxd?fxd.p:0;if(fx>500&&fx<3000)S.set.fx=Math.round(fx*100)/100;
+  var mkOk=MK.filter(function(x){return MKT[x.s];}).length;
+  LIVE.busy=false;LIVE.t=Date.now();LIVE.ok=ok;LIVE.fail=fail;LIVE.fx=fx>0?fx:0;LIVE.total=ks.length;LIVE.fails=(ok+mkOk)>0?0:LIVE.fails+1;
+  if(ok>0||fx>0||mkOk>0){save();var a=document.activeElement,typing=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);if(!typing)render();else liveNote();}else liveNote();}
 function liveLoop(){setInterval(function(){if(S.set.live===false||LIVE.fails>=3||document.visibilityState==='hidden')return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;liveRefresh();},60000);}
 function setStatus(t,e){var s=document.getElementById('status');s.textContent=t;s.className='sub'+(e?' err':'');}
 function save(){try{localStorage.setItem('stk_v1',JSON.stringify(S));}catch(e){}clearTimeout(timer);setStatus('저장 중');timer=setTimeout(persist,700);}
