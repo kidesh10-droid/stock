@@ -204,7 +204,7 @@ function seed(){
     set:{pcap:9000000,prate:0.132,fx:FX0,cash:5828186,loan:0,taxRate:0.22,deduct:2500000},rlVer:7,rl:rlNew().map(function(r,i){r.id=i+1;return r;}),pensVer:3,pens:[{id:1,acct:'퇴직연금 DC',kind:'원리금보장형',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}].concat(pensNew().map(function(p,i){p.id=i+2;return p;})),pc:[],sim:{},memos:(function(){var m={};m[d]='토스 화면 기준으로 평균단가와 현재가를 입력했습니다.';return m;})(),jtab:'ALL',nextId:{trades:id,notes:2}};
 }
 function norm(o){if(!o||!Array.isArray(o.trades))return null;
-  o.sim=o.sim||{};o.cp=o.cp||{drafts:[],cur:0,cfg:{},next:1};if(!o.pens)o.pens=[{id:1,acct:'퇴직연금 DC',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}];o.pc=o.pc||[];if((o.pensVer||0)<2){var mx=0;o.pens.forEach(function(p){mx=Math.max(mx,+p.id||0);if(p.id===1&&!p.kind)p.kind='원리금보장형';});pensNew().forEach(function(p){p.id=++mx;o.pens.push(p);});o.pensVer=2;}if((o.pensVer||0)<3){o.pens.forEach(function(p){if(!p.qty&&/TIGER 미국필라델피아반도체/.test(p.name||''))p.qty=86;});o.pensVer=3;}o.plans=o.plans||{};o.p30=o.p30||p30Def();if(o.rl&&(o.rlVer||0)<2){o.rl.forEach(function(r){if(/^화면4/.test(r.src||'')){r.kind='해외주식';r.on=true;r.memo='해외 실현손익';}if(/판매수익/.test(r.src||'')&&r.on===false){r.kind='해외주식';r.src='토스 양도소득세 · 판매수익 (대조용 합계)';r.memo='판매수익 +5,580,709원 (12.1%). 화면1~4 합계와 대조하는 행이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<3){o.rl.forEach(function(r){if(/^화면[1-4]/.test(r.src||''))r.on=false;if(/판매수익/.test(r.src||'')){r.on=true;r.kind='해외주식';r.src='토스증권 · 판매수익 (해외 합계)';r.memo='토스증권 한 곳 합계, +12.1%. 화면1~4는 같은 토스증권의 세부 화면이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<4){o.rl.forEach(function(r){var m=/^화면([1-4])/.exec(r.src||'');if(m){r.on=true;r.kind='해외주식';r.src=r.src.replace(/^화면(\d) · .*$/,function(_,d){return '토스증권 계좌'+d+' (화면'+d+(d==='4'?', 01-25~11-25':'')+')';});}if(/판매수익/.test(r.src||'')){r.on=false;r.src='토스 양도소득세 · 판매수익 (대조용)';r.memo='+12.1%. 계좌1~4 합계 5,502,410원과 대조하는 행이라 합산에서 뺐습니다. 차이 78,299원.';}});}if(o.rl&&(o.rlVer||0)<5){o.rl.forEach(function(r){if(/판매수익/.test(r.src||'')){r.on=true;r.src='토스증권 · 판매수익';r.memo='토스증권 양도소득세 화면, +12.1%';}});}o.rlVer=5;if(!o.rl){o.rl=rlNew().map(function(r,i){r.id=i+1;return r;});}o.notes=o.notes||[];o.memos=o.memos||{};o.notes.forEach(function(n){o.memos[n.date]=(o.memos[n.date]?o.memos[n.date]+' / ':'')+n.text;});o.notes=[];o.notes=o.notes||[];o.prices=o.prices||{};o.acct=o.acct||'전체';o.month=o.month||nowKey();
+  o.sim=o.sim||{};o.watch=o.watch||[];o.cp=o.cp||{drafts:[],cur:0,cfg:{},next:1};if(!o.pens)o.pens=[{id:1,acct:'퇴직연금 DC',name:'농협은행 퇴직연금정기예금 (DC/IRP) 1년',principal:291670,value:295459}];o.pc=o.pc||[];if((o.pensVer||0)<2){var mx=0;o.pens.forEach(function(p){mx=Math.max(mx,+p.id||0);if(p.id===1&&!p.kind)p.kind='원리금보장형';});pensNew().forEach(function(p){p.id=++mx;o.pens.push(p);});o.pensVer=2;}if((o.pensVer||0)<3){o.pens.forEach(function(p){if(!p.qty&&/TIGER 미국필라델피아반도체/.test(p.name||''))p.qty=86;});o.pensVer=3;}o.plans=o.plans||{};o.p30=o.p30||p30Def();if(o.rl&&(o.rlVer||0)<2){o.rl.forEach(function(r){if(/^화면4/.test(r.src||'')){r.kind='해외주식';r.on=true;r.memo='해외 실현손익';}if(/판매수익/.test(r.src||'')&&r.on===false){r.kind='해외주식';r.src='토스 양도소득세 · 판매수익 (대조용 합계)';r.memo='판매수익 +5,580,709원 (12.1%). 화면1~4 합계와 대조하는 행이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<3){o.rl.forEach(function(r){if(/^화면[1-4]/.test(r.src||''))r.on=false;if(/판매수익/.test(r.src||'')){r.on=true;r.kind='해외주식';r.src='토스증권 · 판매수익 (해외 합계)';r.memo='토스증권 한 곳 합계, +12.1%. 화면1~4는 같은 토스증권의 세부 화면이라 합산에서 뺐습니다.';}});}if(o.rl&&(o.rlVer||0)<4){o.rl.forEach(function(r){var m=/^화면([1-4])/.exec(r.src||'');if(m){r.on=true;r.kind='해외주식';r.src=r.src.replace(/^화면(\d) · .*$/,function(_,d){return '토스증권 계좌'+d+' (화면'+d+(d==='4'?', 01-25~11-25':'')+')';});}if(/판매수익/.test(r.src||'')){r.on=false;r.src='토스 양도소득세 · 판매수익 (대조용)';r.memo='+12.1%. 계좌1~4 합계 5,502,410원과 대조하는 행이라 합산에서 뺐습니다. 차이 78,299원.';}});}if(o.rl&&(o.rlVer||0)<5){o.rl.forEach(function(r){if(/판매수익/.test(r.src||'')){r.on=true;r.src='토스증권 · 판매수익';r.memo='토스증권 양도소득세 화면, +12.1%';}});}o.rlVer=5;if(!o.rl){o.rl=rlNew().map(function(r,i){r.id=i+1;return r;});}o.notes=o.notes||[];o.memos=o.memos||{};o.notes.forEach(function(n){o.memos[n.date]=(o.memos[n.date]?o.memos[n.date]+' / ':'')+n.text;});o.notes=[];o.notes=o.notes||[];o.prices=o.prices||{};o.acct=o.acct||'전체';o.month=o.month||nowKey();
   o.set=Object.assign({pcap:9000000,prate:0.132,auto:false,fx:FX0,cash:0,loan:0,taxRate:0.22,deduct:2500000},o.set||{});
   o.nextId=o.nextId||{};
   o.nextId.trades=Math.max(o.nextId.trades||1,Math.max.apply(null,[0].concat(o.trades.map(function(x){return +x.id||0;})))+1);
@@ -938,6 +938,11 @@ function vDip(){
    +'</div></details><p class="note">추천은 단순 규칙(전일 대비 하락률)이며 투자 권유가 아닙니다. 3배 레버리지는 더 빠질 수 있으니 금액은 여유 자금으로만 정하세요. "단타로 기록"은 현재가로 <b>단타</b> 계좌에 매수를 넣어 기존 평단과 섞이지 않게 합니다. 3단계 금액은 단계 수 × 단계당 금액입니다. 24시간 선물가 기준 종목은 미국 장 시간이 아니면 실제 종가와 다를 수 있습니다.</p></div>';
   return h;}
 function bindDip(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mkn]'),function(e){e.onclick=function(){openMk(e.getAttribute('data-mkn'));};});
+  var wa=function(){var i=document.getElementById('wAdd');if(!i)return;var k=i.value.trim().toUpperCase();if(!/^([A-Z][A-Z.\-]{0,5}|\d{6})$/.test(k)){i.value='';i.placeholder='형식 오류: 영문 티커 또는 6자리 숫자';return;}
+    S.watch=S.watch||[];if(S.watch.indexOf(k)<0)S.watch.push(k);save();render();setTimeout(function(){liveRefresh();},50);};
+  var wb=document.getElementById('wBtn');if(wb)wb.onclick=wa;var wi=document.getElementById('wAdd');if(wi)wi.onkeydown=function(e){if(e.key==='Enter')wa();};
+  Array.prototype.forEach.call(document.querySelectorAll('[data-wdel]'),function(a){a.onclick=function(e){e.preventDefault();S.watch=(S.watch||[]).filter(function(x){return x!==a.getAttribute('data-wdel');});save();render();};});
   Array.prototype.forEach.call(document.querySelectorAll('[data-mkv]'),function(b){b.onclick=function(){S.set.mkView=b.getAttribute('data-mkv');save();render();};});
   Array.prototype.forEach.call(document.querySelectorAll('[data-dc]'),function(i){i.onchange=function(){dipCfg()[i.getAttribute('data-dc')]=num(i.value);save();render();};});
   Array.prototype.forEach.call(document.querySelectorAll('[data-dip]'),function(b){b.onclick=function(){var tk=b.getAttribute('data-dip'),r=dipRows().filter(function(x){return x.tk===tk;})[0];if(!r||!(r.qty>0))return;
@@ -959,7 +964,7 @@ function render(){
   document.getElementById('main').innerHTML=fn();
   bind();
   if(tab==='set')document.getElementById('backup').value=JSON.stringify(S);
-  drawCharts();
+  drawCharts();mkPanelUpd();
 }
 function bind(){
   var q=function(s,f){var e=document.querySelector(s);if(e)f(e);};
@@ -1010,7 +1015,7 @@ function bind(){
 
 /* ---------- persistence ---------- */
 var LIVE={busy:false,t:0,ok:0,fail:[],fails:0,fx:0,total:0};
-function liveSyms(){var m={};S.trades.forEach(function(t){var tk=String(t.tk).toUpperCase();if(t.mkt==='US'&&/^[A-Z][A-Z.\-]{0,5}$/.test(tk))m[tk]=tk;else if(t.mkt==='CR'&&/^[A-Z]{2,6}$/.test(tk))m[tk]=tk+'-KRW';});return m;}
+function liveSyms(){var m={};(S.watch||[]).forEach(function(w){if(/^[A-Z][A-Z.\-]{0,5}$/.test(w))m[w]=w;});S.trades.forEach(function(t){var tk=String(t.tk).toUpperCase();if(t.mkt==='US'&&/^[A-Z][A-Z.\-]{0,5}$/.test(tk))m[tk]=tk;else if(t.mkt==='CR'&&/^[A-Z]{2,6}$/.test(tk))m[tk]=tk+'-KRW';});return m;}
 async function liveOne(sym){
   var u='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range=5d';
   var tries=[u,'https://corsproxy.io/?'+encodeURIComponent(u),'https://api.allorigins.win/raw?url='+encodeURIComponent(u)];
@@ -1064,9 +1069,9 @@ function spark(c,up,w,h){if(!c||c.length<2)return '<svg viewBox="0 0 '+w+' '+h+'
   pts.push(w+','+(h-3-(c[c.length-1]-mn)/rg*(h-6)).toFixed(1));
   return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="'+(up?'var(--pos)':'var(--neg)')+'" stroke-width="1.8" stroke-linejoin="round" points="'+pts.join(' ')+'"/></svg>';}
 function mkTile(name,code,d,fmt,big,sub){
-  if(!d)return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">—</div><div class="mch num">연결 대기</div></div>';
+  if(!d)return '<div class="mt'+(big?' big':'')+'" data-mkn="'+esc(name)+'" style="cursor:pointer"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">—</div><div class="mch num">연결 대기</div></div>';
   var ch=d.prev>0?d.p/d.prev-1:0,up=ch>=0;
-  return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">'+fmt(d.p)+'</div><div class="mch num '+cl(ch)+'">'+(d.prev>0?(up?'▲ ':'▼ ')+Math.abs(ch*100).toFixed(2)+'%':'—')+(sub?' <span class="mc">'+sub+'</span>':'')+'</div><div class="msp">'+spark(d.c,up,200,big?64:44)+'</div></div>';}
+  return '<div class="mt'+(big?' big':'')+'" data-mkn="'+esc(name)+'" style="cursor:pointer"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">'+fmt(d.p)+'</div><div class="mch num '+cl(ch)+'">'+(d.prev>0?(up?'▲ ':'▼ ')+Math.abs(ch*100).toFixed(2)+'%':'—')+(sub?' <span class="mc">'+sub+'</span>':'')+'</div><div class="msp">'+spark(d.c,up,200,big?64:44)+'</div></div>';}
 function vMktTiles(){
   var fw=function(x){return Math.round(x).toLocaleString('ko-KR')+'원';},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});},fu=function(x){return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
   var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신'+diagTxt():'연결 대기')+'</span></h2><div class="mk big">';
@@ -1080,23 +1085,47 @@ function vMktTiles(){
   var held={};try{var a=S.acct;S.acct='전체';calc().H.forEach(function(x){if(x.mkt==='US')held[x.tk]=1;});S.acct=a;}catch(e){}
   mine=mine.filter(function(k){return held[k];});
   if(mine.length){h+='<h2 style="margin:14px 0 8px">내 종목</h2><div class="mk">';mine.forEach(function(k){h+=mkTile(k,'미국',MKT[k],fu,false);});h+='</div>';}
+  var W=S.watch||[];if(W.length){h+='<h2 style="margin:14px 0 8px">관심 종목</h2><div class="mk">';W.forEach(function(k){h+=mkTile(k,/^\d{6}$/.test(k)?'국내':'미국',MKT[k],/^\d{6}$/.test(k)?fw:fu,false);});h+='</div>';}
   return h+'<p class="note">야후 파이낸스 기준이며 정규장 마지막 가격입니다. 지수와 선물은 지연될 수 있습니다. 빨간색은 상승, 파란색은 하락입니다.</p></div>';}
 
 function vMkt(){
   var tb=S.set.mkView==='table';
-  var h='<div class="row" style="gap:6px;margin:0 0 8px;justify-content:flex-end"><button type="button" class="'+(tb?'ghost':'')+'" data-mkv="tile">카드로 보기</button><button type="button" class="'+(tb?'':'ghost')+'" data-mkv="table">표로 보기</button></div>';
+  var h='<div class="row" style="gap:6px;margin:0 0 8px;justify-content:flex-end"><button type="button" class="'+(tb?'ghost':'')+'" data-mkv="tile">카드로 보기</button><button type="button" class="'+(tb?'':'ghost')+'" data-mkv="table">표로 보기</button></div><div class="row" style="gap:6px;margin:0 0 8px;flex-wrap:wrap"><input id="wAdd" placeholder="종목코드 추가 (예: TSLA, 005930)" style="width:230px" aria-label="종목코드"><button type="button" id="wBtn">추가</button>'+(S.watch||[]).map(function(k){return '<span class="pill">'+esc(k)+' <a href="#" data-wdel="'+esc(k)+'" style="text-decoration:none">×</a></span>';}).join('')+'</div>';
   return h+(tb?vMktTable():vMktTiles());}
 function vMktTable(){
   var fw=function(x){return Math.round(x).toLocaleString('ko-KR');},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});};
-  var row=function(n,sub,d,f,pre){if(!d)return '<tr><td class="l">'+esc(n)+'</td><td class="num">—</td><td class="num">연결 대기</td><td class="l sub"></td></tr>';
+  var row=function(n,sub,d,f,pre){if(!d)return '<tr data-mkn="'+esc(n)+'" style="cursor:pointer"><td class="l">'+esc(n)+'</td><td class="num">—</td><td class="num">연결 대기</td><td class="l sub"></td></tr>';
     var ch=d.prev>0?d.p/d.prev-1:null;
-    return '<tr><td class="l">'+esc(n)+(sub?' <span class="sub">'+esc(sub)+'</span>':'')+'</td><td class="num">'+(pre||'')+f(d.p)+'</td><td class="num '+cl(ch)+'">'+(ch===null?'—':spc(ch))+'</td><td class="l sub">'+(d.src==='HL'?'24h 선물':(d.src||''))+'</td></tr>';};
+    return '<tr data-mkn="'+esc(n)+'" style="cursor:pointer"><td class="l">'+esc(n)+(sub?' <span class="sub">'+esc(sub)+'</span>':'')+'</td><td class="num">'+(pre||'')+f(d.p)+'</td><td class="num '+cl(ch)+'">'+(ch===null?'—':spc(ch))+'</td><td class="l sub">'+(d.src==='HL'?'24h 선물':(d.src||''))+'</td></tr>';};
   var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신'+diagTxt():'연결 대기')+'</span></h2><div class="scroll"><table><thead><tr><th>지표</th><th>현재가</th><th>일간%</th><th class="l">출처</th></tr></thead><tbody>';
   MK.forEach(function(x){var d=MKT[x.s];h+=row(x.n,x.c&&x.c!=='선물'?x.c:'',d,x.u==='원'?(x.krw||x.int||x.fxItem?fw:fi):fi,x.u==='원'?'₩ ':'');});
   var held={};try{var a=S.acct;S.acct='전체';calc().H.forEach(function(x){if(x.mkt==='US'&&x.qty>=0.01)held[x.tk]=1;});S.acct=a;}catch(e){}
   var mine=Object.keys(held).filter(function(k){return MKT[k];});
   if(mine.length){h+='<tr><td class="l" colspan="4"><b>내 보유 종목</b></td></tr>';mine.forEach(function(k){h+=row(k,'미국',MKT[k],fi,'$ ');});}
+  var W=S.watch||[];if(W.length){h+='<tr><td class="l" colspan="4"><b>관심 종목</b></td></tr>';W.forEach(function(k){h+=row(k,'관심',MKT[k],fi,/^\d{6}$/.test(k)?'₩ ':'$ ');});}
   return h+'</tbody></table></div><p class="note">거래량은 연결된 시세 출처에서 제공하지 않아 표시하지 않습니다. 선물 표시는 24시간 선물가입니다.</p></div>';}
+
+/* ---------- 종목 상세(차트) ---------- */
+var TVMAP={'005930.KS':'KRX:005930','000660.KS':'KRX:000660','005380.KS':'KRX:005380','NQ=F':'CME_MINI:NQ1!','KR200':'KRX:KOSPI200','KRW=X':'FX_IDC:USDKRW','^GSPC':'SP:SPX','BTC-KRW':'UPBIT:BTCKRW'};
+function mkResolve(name){var x=MK.filter(function(m){return m.n===name;})[0];
+  if(x)return {name:name,key:x.s,tv:TVMAP[x.s]||x.s,krw:x.u==='원'};
+  if(/^\d{6}$/.test(name))return {name:name,key:name,tv:'KRX:'+name,krw:true};
+  return {name:name,key:name,tv:name,krw:false};}
+function openMk(name){
+  var r=mkResolve(name);if(!document.body)return;
+  var old=document.getElementById('mkPanel');if(old&&old.parentNode)old.parentNode.removeChild(old);
+  var p=document.createElement('div');p.id='mkPanel';
+  p.setAttribute('style','position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;align-items:center;justify-content:center;padding:10px');
+  var url='https://s.tradingview.com/widgetembed/?symbol='+encodeURIComponent(r.tv)+'&interval=D&theme=light&style=1&locale=kr&timezone=Asia%2FSeoul&hidesidetoolbar=1&withdateranges=1';
+  p.innerHTML='<div style="background:#fff;border-radius:14px;max-width:760px;width:100%;max-height:94vh;overflow:auto;padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><b style="font-size:18px">'+esc(r.name)+'</b> <span class="sub">'+esc(r.tv)+'</span><div id="mkPx" class="num" style="font-size:28px;font-weight:700;margin-top:4px"></div><div id="mkCh" class="num"></div></div><button type="button" id="mkClose" class="ghost">닫기</button></div><iframe src="'+url+'" style="width:100%;height:420px;border:0;margin-top:10px" title="차트"></iframe><p class="note">차트는 TradingView 제공이며 지연될 수 있습니다. 위 현재가는 이 장부의 시세 연동 값입니다.</p></div>';
+  document.body.appendChild(p);
+  var close=function(){if(p.parentNode)p.parentNode.removeChild(p);};
+  document.getElementById('mkClose').onclick=close;p.onclick=function(e){if(e.target===p)close();};
+  p.setAttribute('data-key',r.key);p.setAttribute('data-krw',r.krw?'1':'');mkPanelUpd();}
+function mkPanelUpd(){var p=document.getElementById('mkPanel');if(!p||!p.getAttribute)return;var d=MKT[p.getAttribute('data-key')],a=document.getElementById('mkPx'),b=document.getElementById('mkCh');if(!a||!b)return;
+  if(!d){a.textContent='시세 연결 대기';b.textContent='';return;}
+  var krw=p.getAttribute('data-krw'),ch=d.prev>0?d.p/d.prev-1:null;
+  a.textContent=(krw?'₩ ':'')+d.p.toLocaleString('ko-KR',{maximumFractionDigits:krw?0:2,minimumFractionDigits:krw?0:2});b.className='num '+cl(ch);b.textContent=ch===null?'':spc(ch);}
 function liveNote(){var an=document.getElementById('autoNote');if(!an)return;
   if(S.set.live===false){an.innerHTML='실시간 시세 꺼짐 · 현재가는 직접 입력한 값입니다 <button id="liveBtn" type="button" class="ghost">시세 새로고침</button>';}
   else if(LIVE.busy){an.textContent='시세 불러오는 중…';return;}
