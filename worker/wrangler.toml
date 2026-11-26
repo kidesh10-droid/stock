@@ -1,0 +1,22 @@
+name = "stock-alert"
+main = "alert.js"
+compatibility_date = "2025-01-01"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+# KV 네임스페이스를 만들고 id를 넣으세요: wrangler kv namespace create KV
+[[kv_namespaces]]
+binding = "KV"
+id = "여기에_KV_ID"
+
+[vars]
+WATCH = "TQQQ,SOXL,TSLL,PLTU,TSLS,SNXX,KORU,RAM,NVDA"
+L1 = "-10"
+L2 = "-15"
+L3 = "-20"
+BUDGET_KRW = "500000"
+TP = "30"
+FX = "1350"
+SITE_URL = "https://kidesh10-droid.github.io/stock/"
+# 비밀값(대시보드 Secrets 또는 wrangler secret put): KAKAO_REST_KEY, ADMIN, KAKAO_CLIENT_SECRET(선택)
