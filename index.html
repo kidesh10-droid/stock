@@ -333,7 +333,7 @@ function vDash(){
   var pp=0,pv=0;(S.pens||[]).forEach(function(p){pp+=num(p.principal);pv+=num(p.value);});
   var allC=cost+cc+pp,allV=val+cv+pv,allPl=allV-allC,allAll=tv+cvAll+pv;
   var net=tv+coinV+penV+num(S.set.cash)-num(S.set.loan);
-  var h=vMkt();
+  var h=vMkt()+vDip();
   h+='<section class="tiles">'
    +tile('전체 투자자산 (주식+코인+연금)',won(allAll)+'원','주식 '+won(tv)+' · 코인 '+won(cvAll)+' · 연금 '+won(pv))
    +tile('전체 투자 손익 (입력 완료분)',sw(allPl)+'원',allC>0?spc(allPl/allC):'—',cl(allPl))
@@ -908,6 +908,40 @@ function bindCp(){
     catch(x){d.sent='서버에 연결하지 못했습니다: '+x.message;}
     save();res.textContent=d.sent;};});
 }
+
+/* ---------- 하락 매수 추천 ---------- */
+function dipCfg(){var d=S.set.dip=S.set.dip||{l1:-10,l2:-15,l3:-20,budget:500000,tp:30,sl:-25};return d;}
+function dipRows(){
+  var c=dipCfg(),sv=S.acct,H;S.acct='전체';try{H=calc().H;}finally{S.acct=sv;}
+  var fx=num(S.set.fx)||1350,out=[];
+  H.forEach(function(x){if(x.mkt!=='US'||x.qty<0.01)return;var m=MKT[x.tk];if(!m||!(m.prev>0)||!(m.p>0))return;
+    var chg=m.p/m.prev-1,lv=chg*100<=num(c.l3)?3:chg*100<=num(c.l2)?2:chg*100<=num(c.l1)?1:0;
+    var amt=num(c.budget)*(lv||1),qty=Math.floor(amt/(m.p*fx)*100)/100;
+    out.push({tk:x.tk,p:m.p,chg:chg,lv:lv,amt:amt,qty:qty,tp:m.p*(1+num(c.tp)/100)});});
+  return out.sort(function(a,b){return a.chg-b.chg;});}
+function dipHold(){var sv=S.acct,H=[];S.acct='단타';try{H=calc().H;}finally{S.acct=sv;}return H;}
+function vDip(){
+  var c=dipCfg(),R=dipRows(),hot=R.filter(function(r){return r.lv>0;}),T=dipHold();
+  var lab=['','1단계 관찰','2단계 분할매수','3단계 적극 매수'];
+  var h='<div class="card"><h2>하락 매수 추천 <span class="sub">내 보유 종목 · 전일 대비 등락 기준 · 1분마다 갱신</span></h2>';
+  if(!R.length)return h+'<p class="note">시세가 연결된 보유 종목이 없어 계산할 수 없습니다.</p></div>';
+  if(hot.length)h+='<div class="alert" style="margin-bottom:10px"><b>하락 신호 '+hot.length+'개:</b> '+hot.map(function(r){return esc(r.tk)+' '+spc(r.chg);}).join(' · ')+'</div>';
+  h+='<div class="scroll"><table><thead><tr><th>종목</th><th>현재가</th><th>전일 대비</th><th>신호</th><th>추천 매수금액</th><th>수량</th><th>목표 매도가 (+'+num(c.tp)+'%)</th><th></th></tr></thead><tbody>';
+  R.forEach(function(r){h+='<tr class="'+(r.lv?'neg-row':'')+'"><td class="l"><b>'+esc(r.tk)+'</b></td><td class="num">$'+r.p.toFixed(2)+'</td><td class="num '+cl(r.chg)+'">'+spc(r.chg)+'</td><td>'+(r.lv?'<span class="pill bad">'+lab[r.lv]+'</span>':'<span class="pill">대기</span>')+'</td><td class="num">'+(r.lv?won(r.amt)+'원':'—')+'</td><td class="num">'+(r.lv?r.qty:'—')+'</td><td class="num">'+(r.lv?'$'+r.tp.toFixed(2):'—')+'</td><td>'+(r.lv&&r.qty>0?'<button type="button" class="ghost" data-dip="'+esc(r.tk)+'">단타로 기록</button>':'')+'</td></tr>';});
+  h+='</tbody></table></div>';
+  if(T.length){h+='<h2 style="margin:14px 0 8px">단타 보유 (기존 평단과 따로 관리)</h2><div class="scroll"><table><thead><tr><th>종목</th><th>수량</th><th>평단 ($)</th><th>수익률</th><th>신호</th></tr></thead><tbody>';
+   T.forEach(function(x){var sg=x.ret===null?'—':x.ret*100>=num(c.tp)?'<span class="pill">목표 도달 · 절반 매도 검토</span>':x.ret*100<=num(c.sl)?'<span class="pill bad">손절선 · 정리 검토</span>':'보유';
+    h+='<tr><td class="l"><b>'+esc(x.tk)+'</b></td><td class="num">'+x.qty.toLocaleString('ko-KR',{maximumFractionDigits:4})+'</td><td class="num">'+(x.hasCost?'$'+x.avgUsd.toFixed(2):'—')+'</td><td class="num '+cl(x.ret)+'">'+(x.ret===null?'—':spc(x.ret))+'</td><td>'+sg+'</td></tr>';});
+   h+='</tbody></table></div>';}
+  h+='<details style="margin-top:10px"><summary>기준 설정</summary><div class="cpgrid" style="margin-top:8px">'
+   +[['l1','1단계 하락 (%)'],['l2','2단계 하락 (%)'],['l3','3단계 하락 (%)'],['budget','단계당 매수금액 (원)'],['tp','목표 수익 (%)'],['sl','손절선 (%)']].map(function(a){return '<label class="fld"><span>'+a[1]+'</span><input type="number" step="any" data-dc="'+a[0]+'" value="'+esc(c[a[0]])+'"></label>';}).join('')
+   +'</div></details><p class="note">추천은 단순 규칙(전일 대비 하락률)이며 투자 권유가 아닙니다. 3배 레버리지는 더 빠질 수 있으니 금액은 여유 자금으로만 정하세요. "단타로 기록"은 현재가로 <b>단타</b> 계좌에 매수를 넣어 기존 평단과 섞이지 않게 합니다. 3단계 금액은 단계 수 × 단계당 금액입니다. 24시간 선물가 기준 종목은 미국 장 시간이 아니면 실제 종가와 다를 수 있습니다.</p></div>';
+  return h;}
+function bindDip(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-dc]'),function(i){i.onchange=function(){dipCfg()[i.getAttribute('data-dc')]=num(i.value);save();render();};});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-dip]'),function(b){b.onclick=function(){var tk=b.getAttribute('data-dip'),r=dipRows().filter(function(x){return x.tk===tk;})[0];if(!r||!(r.qty>0))return;
+    if(!confirm(tk+' '+r.qty+'주를 $'+r.p.toFixed(2)+'에 단타 계좌로 기록할까요?'))return;
+    S.trades.push({id:S.nextId.trades++,date:today(),acct:'단타',mkt:'US',tk:tk,side:'매수',price:r.p,qty:r.qty,fx:num(S.set.fx),fee:0,memo:'하락 매수 '+spc(r.chg)});save();render();};});}
 function render(){
   var nav=document.getElementById('monthNav');
   var as=['전체'].concat(accts());
@@ -959,7 +993,7 @@ function bind(){
   if(tab==='btc')bindBtc();
   if(tab==='pen')bindPen();
   if(tab==='ana')bindAna();
-  if(tab==='dash')bindP30();
+  if(tab==='dash'){bindP30();bindDip();}
   if(tab==='cp')bindCp();
   if(tab==='rl')bindRl();
   if(tab==='notes')bindJournal();
@@ -988,7 +1022,7 @@ var MK=[
  {n:'현대차',s:'005380.KS',c:'005380',big:1,u:'원',hl:['HYUNDAI','HYUNDAIMOTOR'],krw:1},
  {n:'나스닥100 선물',s:'NQ=F',c:'선물',big:1,u:'',hl:['XYZ100']},
  {n:'비트코인',s:'BTC-KRW',c:'BTC',big:1,u:'원',int:1,coin:'BTC'},
- {n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']}];
+ {n:'코스피200 (선물)',s:'KR200',u:'',hl:['KR200']},{n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']}];
 async function hlPost(body){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},8000);var r=await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ac.signal});clearTimeout(tm);return r.ok?await r.json():null;}catch(e){return null;}}
 async function hlItem(coin,mid,mul){
   var now=Date.now(),cs=await hlPost({type:'candleSnapshot',req:{coin:coin,interval:'15m',startTime:now-86400000,endTime:now}});
