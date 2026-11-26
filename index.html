@@ -938,6 +938,7 @@ function vDip(){
    +'</div></details><p class="note">추천은 단순 규칙(전일 대비 하락률)이며 투자 권유가 아닙니다. 3배 레버리지는 더 빠질 수 있으니 금액은 여유 자금으로만 정하세요. "단타로 기록"은 현재가로 <b>단타</b> 계좌에 매수를 넣어 기존 평단과 섞이지 않게 합니다. 3단계 금액은 단계 수 × 단계당 금액입니다. 24시간 선물가 기준 종목은 미국 장 시간이 아니면 실제 종가와 다를 수 있습니다.</p></div>';
   return h;}
 function bindDip(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mkv]'),function(b){b.onclick=function(){S.set.mkView=b.getAttribute('data-mkv');save();render();};});
   Array.prototype.forEach.call(document.querySelectorAll('[data-dc]'),function(i){i.onchange=function(){dipCfg()[i.getAttribute('data-dc')]=num(i.value);save();render();};});
   Array.prototype.forEach.call(document.querySelectorAll('[data-dip]'),function(b){b.onclick=function(){var tk=b.getAttribute('data-dip'),r=dipRows().filter(function(x){return x.tk===tk;})[0];if(!r||!(r.qty>0))return;
     if(!confirm(tk+' '+r.qty+'주를 $'+r.p.toFixed(2)+'에 단타 계좌로 기록할까요?'))return;
@@ -1066,7 +1067,7 @@ function mkTile(name,code,d,fmt,big,sub){
   if(!d)return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">—</div><div class="mch num">연결 대기</div></div>';
   var ch=d.prev>0?d.p/d.prev-1:0,up=ch>=0;
   return '<div class="mt'+(big?' big':'')+'"><div class="mn">'+esc(name)+(code?' <span class="mc">'+esc(code)+'</span>':'')+'</div><div class="mp num">'+fmt(d.p)+'</div><div class="mch num '+cl(ch)+'">'+(d.prev>0?(up?'▲ ':'▼ ')+Math.abs(ch*100).toFixed(2)+'%':'—')+(sub?' <span class="mc">'+sub+'</span>':'')+'</div><div class="msp">'+spark(d.c,up,200,big?64:44)+'</div></div>';}
-function vMkt(){
+function vMktTiles(){
   var fw=function(x){return Math.round(x).toLocaleString('ko-KR')+'원';},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});},fu=function(x){return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
   var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신'+diagTxt():'연결 대기')+'</span></h2><div class="mk big">';
   MK.filter(function(x){return x.big;}).forEach(function(x){h+=mkTile(x.n,x.c,MKT[x.s],x.u==='원'?fw:fi,true,MKT[x.s]&&MKT[x.s].src==='HL'?(x.krw?'$'+fi(MKT[x.s].usd)+' · ':'')+'24h 선물':(x.coin&&MKT[x.s]?(MKT[x.s].src||''):''));});
@@ -1080,6 +1081,22 @@ function vMkt(){
   mine=mine.filter(function(k){return held[k];});
   if(mine.length){h+='<h2 style="margin:14px 0 8px">내 종목</h2><div class="mk">';mine.forEach(function(k){h+=mkTile(k,'미국',MKT[k],fu,false);});h+='</div>';}
   return h+'<p class="note">야후 파이낸스 기준이며 정규장 마지막 가격입니다. 지수와 선물은 지연될 수 있습니다. 빨간색은 상승, 파란색은 하락입니다.</p></div>';}
+
+function vMkt(){
+  var tb=S.set.mkView==='table';
+  var h='<div class="row" style="gap:6px;margin:0 0 8px;justify-content:flex-end"><button type="button" class="'+(tb?'ghost':'')+'" data-mkv="tile">카드로 보기</button><button type="button" class="'+(tb?'':'ghost')+'" data-mkv="table">표로 보기</button></div>';
+  return h+(tb?vMktTable():vMktTiles());}
+function vMktTable(){
+  var fw=function(x){return Math.round(x).toLocaleString('ko-KR');},fi=function(x){return x.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var row=function(n,sub,d,f,pre){if(!d)return '<tr><td class="l">'+esc(n)+'</td><td class="num">—</td><td class="num">연결 대기</td><td class="l sub"></td></tr>';
+    var ch=d.prev>0?d.p/d.prev-1:null;
+    return '<tr><td class="l">'+esc(n)+(sub?' <span class="sub">'+esc(sub)+'</span>':'')+'</td><td class="num">'+(pre||'')+f(d.p)+'</td><td class="num '+cl(ch)+'">'+(ch===null?'—':spc(ch))+'</td><td class="l sub">'+(d.src==='HL'?'24h 선물':(d.src||''))+'</td></tr>';};
+  var h='<div class="card"><h2>시장 현황 <span class="sub">'+(LIVE.t?new Date(LIVE.t).toLocaleTimeString('ko-KR')+' 기준 · 1분마다 갱신'+diagTxt():'연결 대기')+'</span></h2><div class="scroll"><table><thead><tr><th>지표</th><th>현재가</th><th>일간%</th><th class="l">출처</th></tr></thead><tbody>';
+  MK.forEach(function(x){var d=MKT[x.s];h+=row(x.n,x.c&&x.c!=='선물'?x.c:'',d,x.u==='원'?(x.krw||x.int||x.fxItem?fw:fi):fi,x.u==='원'?'₩ ':'');});
+  var held={};try{var a=S.acct;S.acct='전체';calc().H.forEach(function(x){if(x.mkt==='US'&&x.qty>=0.01)held[x.tk]=1;});S.acct=a;}catch(e){}
+  var mine=Object.keys(held).filter(function(k){return MKT[k];});
+  if(mine.length){h+='<tr><td class="l" colspan="4"><b>내 보유 종목</b></td></tr>';mine.forEach(function(k){h+=row(k,'미국',MKT[k],fi,'$ ');});}
+  return h+'</tbody></table></div><p class="note">거래량은 연결된 시세 출처에서 제공하지 않아 표시하지 않습니다. 선물 표시는 24시간 선물가입니다.</p></div>';}
 function liveNote(){var an=document.getElementById('autoNote');if(!an)return;
   if(S.set.live===false){an.innerHTML='실시간 시세 꺼짐 · 현재가는 직접 입력한 값입니다 <button id="liveBtn" type="button" class="ghost">시세 새로고침</button>';}
   else if(LIVE.busy){an.textContent='시세 불러오는 중…';return;}
