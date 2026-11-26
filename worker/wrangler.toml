@@ -12,6 +12,9 @@ id = "여기에_KV_ID"
 
 [vars]
 WATCH = "TQQQ,SOXL,TSLL,PLTU,TSLS,SNXX,KORU,RAM,NVDA"
+HOLD = "SOXL:44.4:28.5,TQQQ:552:54.4"
+NEW = "NVDA,TSLA,PLTR"
+SEP = "-30"
 L1 = "-10"
 L2 = "-15"
 L3 = "-20"

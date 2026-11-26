@@ -90,25 +90,65 @@ async function quotes(tks) {
   return out;
 }
 
+// 일봉 기록(야후)으로 지표 계산: RSI(14), 20일 평균, 20일 저점, 고점 대비 낙폭
+async function hist(k) {
+  try {
+    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(k)}?interval=1d&range=6mo`, { headers: { 'user-agent': 'Mozilla/5.0' } });
+    const c = (await r.json()).chart.result[0].indicators.quote[0];
+    const cl = c.close.filter((x) => x > 0), lo = c.low.filter((x) => x > 0), hi = c.high.filter((x) => x > 0);
+    if (cl.length < 30) return null;
+    let g = 0, l = 0;
+    for (let i = cl.length - 14; i < cl.length; i++) { const d = cl[i] - cl[i - 1]; if (d > 0) g += d; else l -= d; }
+    const rsi = l === 0 ? 100 : 100 - 100 / (1 + g / l);
+    const ma20 = cl.slice(-20).reduce((a, b) => a + b, 0) / 20;
+    return { rsi, ma20, low20: Math.min(...lo.slice(-20)), high: Math.max(...hi), last: cl[cl.length - 1] };
+  } catch (e) { return null; }
+}
+
+function parseHold(v) {
+  const m = {};
+  String(v || '').split(',').forEach((x) => { const [k, q, a] = x.split(':'); if (k && +q > 0 && +a > 0) m[k.trim().toUpperCase()] = { qty: +q, avg: +a }; });
+  return m;
+}
+
 async function check(env, dry) {
-  const tks = String(env.WATCH || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+  const hold = parseHold(env.HOLD);
+  const list = (s) => String(s || '').split(',').map((x) => x.trim().toUpperCase()).filter(Boolean);
+  const own = Object.keys(hold), fresh = list(env.NEW).filter((k) => !hold[k]);
+  const tks = [...new Set([...list(env.WATCH), ...own, ...fresh])];
   const L = [num(env.L1, -10), num(env.L2, -15), num(env.L3, -20)];
-  const budget = num(env.BUDGET_KRW, 500000), fx = num(env.FX, 1350), tp = num(env.TP, 30);
+  const budget = num(env.BUDGET_KRW, 500000), fx = num(env.FX, 1350), tp = num(env.TP, 30), sepAt = num(env.SEP, -30);
   const q = await quotes(tks);
+  const H = Object.fromEntries(await Promise.all(Object.keys(q).map(async (k) => [k, await hist(k)])));
   const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-  const sent = [];
-  for (const k of tks) {
-    const d = q[k];
-    if (!d) continue;
-    const chg = (d.p / d.prev - 1) * 100;
+  const out = [], keys = [];
+  for (const k of Object.keys(q)) {
+    const d = q[k], h = H[k], chg = (d.p / d.prev - 1) * 100;
     const lv = chg <= L[2] ? 3 : chg <= L[1] ? 2 : chg <= L[0] ? 1 : 0;
-    if (!lv) continue;
-    const key = `s:${k}:${lv}:${day}`;
+    const oversold = h && h.rsi <= 30;
+    if (!lv && !oversold) continue;
+    const key = `s:${k}:${lv}:${oversold ? 'r' : ''}:${day}`;
     if (!dry && (await env.KV.get(key))) continue;
-    const amt = budget * lv, qty = Math.floor((amt / (d.p * fx)) * 100) / 100;
-    const text = `[${['', '1단계 관찰', '2단계 분할매수', '3단계 적극 매수'][lv]}] ${k} ${chg.toFixed(1)}% (${d.src})\n현재가 $${d.p.toFixed(2)}\n추천 ${Math.round(amt / 10000)}만원 ≈ ${qty}주, 목표 $${(d.p * (1 + tp / 100)).toFixed(2)} (+${tp}%)\n※ 내가 정한 기준에 닿았다는 알림이며 투자 권유가 아닙니다.`;
-    if (dry) { sent.push(text); continue; }
-    if (await kakao(env, text)) { await env.KV.put(key, '1', { expirationTtl: 172800 }); sent.push(k); }
+    const amt = budget * Math.max(lv, 1), usd = amt / fx;
+    // 2분할: 지금 가까운 가격 + 더 내려올 때(20일 저점 또는 -7% 중 낮은 쪽)
+    const p1 = d.p * 0.99, p2 = Math.max(h ? Math.min(h.low20, d.p * 0.93) : d.p * 0.93, d.p * 0.8);
+    const q1 = Math.floor((usd / 2 / p1) * 100) / 100, q2 = Math.floor((usd / 2 / p2) * 100) / 100;
+    const own1 = hold[k];
+    let t = `■ ${k}${own1 ? ' (보유)' : ' (신규 후보)'} $${d.p.toFixed(2)} ${chg.toFixed(1)}% [${d.src}]\n`;
+    if (h) t += `RSI ${h.rsi.toFixed(0)}${oversold ? '(과매도)' : ''} · 20일선 대비 ${((d.p / h.ma20 - 1) * 100).toFixed(0)}% · 고점 대비 ${((d.p / h.high - 1) * 100).toFixed(0)}%\n`;
+    t += `매수안(총 ${Math.round(amt / 10000)}만원): ① $${p1.toFixed(2)} ${q1}주 ② $${p2.toFixed(2)} ${q2}주\n목표 $${(d.p * (1 + tp / 100)).toFixed(2)}(+${tp}%)`;
+    if (own1) {
+      const pl = (d.p / own1.avg - 1) * 100, nq = own1.qty + q1 + q2, na = (own1.qty * own1.avg + q1 * p1 + q2 * p2) / nq;
+      t += `\n내 평단 $${own1.avg.toFixed(2)}(${pl.toFixed(0)}%) → 매수 후 $${na.toFixed(2)}`;
+      if (pl <= sepAt) t += `\n평단 대비 ${pl.toFixed(0)}%라 물타기보다 새 자금으로 따로 매수(단타)가 낫습니다.`;
+    }
+    out.push(t); keys.push(key);
   }
-  return { checked: Object.keys(q), alerts: sent };
+  keys.splice(3); out.splice(3); // 카톡 글자 수 제한 때문에 한 번에 최대 3종목
+  const res = { checked: Object.keys(q), alerts: out.length };
+  if (!out.length) return res;
+  const text = out.join('\n\n') + '\n\n※ 규칙 기반 계산(RSI·이동평균·저점)이며 예측이나 투자 권유가 아닙니다.';
+  if (dry) return { ...res, preview: text };
+  if (await kakao(env, text)) for (const k of keys) await env.KV.put(k, '1', { expirationTtl: 172800 });
+  return res;
 }

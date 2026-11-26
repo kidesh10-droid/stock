@@ -1,6 +1,6 @@
 # 카카오톡 하락 알림 서버 (Cloudflare Worker)
 
-5분마다 보유 종목 시세를 확인해서, 기준(-10/-15/-20%)에 닿으면 카카오톡 "나에게 보내기"로 알립니다. 같은 단계는 하루에 한 번만 보냅니다.
+5분마다 보유·후보 종목의 시세와 일봉(RSI, 20일선, 20일 저점)을 계산해서, 하락 기준(-10/-15/-20%) 또는 RSI 30 이하(과매도)에 닿으면 매수안(지정가 2분할, 수량, 목표가, 매수 후 평단)을 카카오톡 "나에게 보내기"로 알립니다. 같은 단계는 하루에 한 번만 보냅니다.
 
 ## 설치 순서
 1. **카카오 개발자 앱**: https://developers.kakao.com → 애플리케이션 추가
@@ -11,7 +11,7 @@
    - `alert.js` 내용을 붙여 넣고 배포
    - Settings → Triggers → Cron Triggers: `*/5 * * * *`
    - Storage & Databases → KV에서 네임스페이스를 만들고, Worker의 Bindings에 변수명 `KV`로 연결
-   - Settings → Variables: `WATCH`(예: `TQQQ,SOXL,TSLL`), `L1`,`L2`,`L3`, `BUDGET_KRW`, `TP`, `FX`, `SITE_URL`
+   - Settings → Variables: `HOLD`(내 보유: `종목:수량:평단$`, 예 `SOXL:44.4:28.5,TQQQ:552:54.4`), `NEW`(신규 후보 종목, 예 `NVDA,TSLA,PLTR`), `WATCH`, `L1`,`L2`,`L3`, `BUDGET_KRW`, `TP`, `SEP`(따로 매수 권장 기준, 기본 -30), `FX`, `SITE_URL`
    - Secrets: `KAKAO_REST_KEY`, `ADMIN`(내가 정하는 긴 비밀번호), 필요하면 `KAKAO_CLIENT_SECRET`
 3. 브라우저에서 `https://<워커주소>/auth?key=<ADMIN>` 접속 → 카카오 로그인 동의 → "연결 완료"
 4. `https://<워커주소>/test?key=<ADMIN>` 로 테스트 메시지 확인
