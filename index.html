@@ -155,7 +155,7 @@ html{-webkit-text-size-adjust:100%}
 <script>
 (function(){
 'use strict';
-var TABS=[['dash','대시보드'],['all','합산'],['cp','쿠팡'],['buy','신규 매수'],['btc','비트코인'],['pen','연금'],['ana','대응 분석'],['rl','실현손익'],['day','일자별 거래'],['msum','월별 집계'],['items','종목·평단'],['notes','매매일지'],['set','설정'],['help','사용 방법']];
+var TABS=[['dash','대시보드'],['all','합산'],['watch','관심종목'],['cp','쿠팡'],['buy','신규 매수'],['btc','비트코인'],['pen','연금'],['ana','대응 분석'],['rl','실현손익'],['day','일자별 거래'],['msum','월별 집계'],['items','종목·평단'],['notes','매매일지'],['set','설정'],['help','사용 방법']];
 var AUTO=null;
 function autoOn(tk){return S.set.auto===true&&AUTO&&AUTO.prices&&AUTO.prices[tk]&&num(AUTO.prices[tk].p)>0;}
 function px(tk){return autoOn(tk)?num(AUTO.prices[tk].p):num(S.prices[tk]);}
@@ -948,6 +948,33 @@ function bindDip(){
   Array.prototype.forEach.call(document.querySelectorAll('[data-dip]'),function(b){b.onclick=function(){var tk=b.getAttribute('data-dip'),r=dipRows().filter(function(x){return x.tk===tk;})[0];if(!r||!(r.qty>0))return;
     if(!confirm(tk+' '+r.qty+'주를 $'+r.p.toFixed(2)+'에 단타 계좌로 기록할까요?'))return;
     S.trades.push({id:S.nextId.trades++,date:today(),acct:'단타',mkt:'US',tk:tk,side:'매수',price:r.p,qty:r.qty,fx:num(S.set.fx),fee:0,memo:'하락 매수 '+spc(r.chg)});save();render();};});}
+
+/* ---------- 관심종목 (미장/국장) ---------- */
+var SDB=[['TSLA','테슬라','US'],['NVDA','엔비디아','US'],['AAPL','애플','US'],['MSFT','마이크로소프트','US'],['GOOGL','구글 알파벳','US'],['AMZN','아마존','US'],['META','메타','US'],['AVGO','브로드컴','US'],['AMD','AMD','US'],['INTC','인텔','US'],['MU','마이크론','US'],['TSM','TSMC 대만반도체','US'],['PLTR','팔란티어','US'],['COIN','코인베이스','US'],['MSTR','마이크로스트래티지','US'],['NFLX','넷플릭스','US'],['ORCL','오라클','US'],['SMCI','슈퍼마이크로','US'],['ARM','ARM','US'],['QQQ','나스닥100 QQQ','US'],['SPY','S&P500 SPY','US'],['SCHD','슈드 SCHD','US'],['TQQQ','TQQQ 나스닥3배','US'],['SQQQ','SQQQ 나스닥인버스3배','US'],['SOXL','SOXL 반도체3배','US'],['SOXS','SOXS 반도체인버스3배','US'],['TSLL','TSLL 테슬라2배','US'],['TSLS','TSLS 테슬라인버스','US'],['PLTU','PLTU 팔란티어2배','US'],['NVDL','NVDL 엔비디아2배','US'],['SNXX','SNXX 샌디스크2배','US'],['KORU','KORU 한국3배','US'],['RAM','RAM','US'],['IQQQ','IQQQ','US'],['SNDK','샌디스크','US'],['SOXX','SOXX 반도체','US'],['SMH','SMH 반도체','US'],['VOO','VOO S&P500','US'],['JEPI','JEPI 커버드콜','US'],['TLT','TLT 미국장기채','US'],
+['005930','삼성전자','KR'],['000660','SK하이닉스','KR'],['005380','현대차','KR'],['000270','기아','KR'],['066570','LG전자','KR'],['009150','삼성전기','KR'],['035420','NAVER 네이버','KR'],['035720','카카오','KR'],['012450','한화에어로스페이스','KR'],['042660','한화오션','KR'],['042700','한미반도체','KR'],['207940','삼성바이오로직스','KR'],['068270','셀트리온','KR'],['005490','POSCO홀딩스 포스코','KR'],['105560','KB금융','KR'],['055550','신한지주','KR'],['373220','LG에너지솔루션','KR'],['051910','LG화학','KR'],['006400','삼성SDI','KR'],['003670','포스코퓨처엠','KR'],['086520','에코프로','KR'],['247540','에코프로비엠','KR'],['196170','알테오젠','KR'],['329180','HD현대중공업','KR'],['028260','삼성물산','KR'],['352820','하이브','KR'],['259960','크래프톤','KR'],['102110','TIGER 200','KR'],['069500','KODEX 200','KR'],['122630','KODEX 레버리지','KR'],['114800','KODEX 인버스','KR'],['133690','TIGER 미국나스닥100','KR'],['379800','KODEX 미국S&P500','KR']];
+function symInfo(k){var e=SDB.filter(function(x){return x[0]===k;})[0];return e?{tk:k,name:e[1],m:e[2]}:{tk:k,name:k,m:/^\d{6}$/.test(k)?'KR':'US'};}
+function watchAdd(k){S.watch=S.watch||[];if(S.watch.indexOf(k)<0)S.watch.push(k);save();}
+function vWatch(){
+  var f=S.wf||'전체',W=(S.watch||[]).map(symInfo).filter(function(x){return f==='전체'||(f==='미장'?x.m==='US':x.m==='KR');});
+  var h='<div class="card"><h2>관심종목 <span class="sub">검색해서 ★ 추가 · 줄을 누르면 차트</span></h2><div class="row" style="gap:6px;flex-wrap:wrap"><input id="wq" placeholder="종목 검색 (예: 테슬라, 삼성전자, TSLA, 005930)" style="width:300px;max-width:100%" aria-label="종목 검색" autocomplete="off"></div><div id="wRes" style="margin-top:8px"></div></div>'
+   +'<div class="card"><div class="row" style="gap:6px;margin-bottom:8px">'+['전체','미장','국장'].map(function(t){return '<button type="button" class="'+(t===f?'':'ghost')+'" data-wf="'+t+'">'+t+'</button>';}).join('')+'</div>';
+  if(!W.length)return h+'<p class="note">아직 추가한 종목이 없습니다. 위에서 검색해 ★ 추가를 눌러 보세요.</p></div>';
+  h+='<div class="scroll"><table><thead><tr><th>종목</th><th>시장</th><th>현재가</th><th>일간%</th><th></th></tr></thead><tbody>';
+  W.forEach(function(x){var d=MKT[x.tk],ch=d&&d.prev>0?d.p/d.prev-1:null,kr=x.m==='KR';
+    h+='<tr data-mkn="'+esc(x.tk)+'" style="cursor:pointer"><td class="l"><b>'+esc(x.name)+'</b> <span class="sub">'+esc(x.tk)+'</span></td><td><span class="pill">'+(kr?'국장':'미장')+'</span></td><td class="num">'+(d?(kr?'₩ ':'$ ')+d.p.toLocaleString('ko-KR',{minimumFractionDigits:kr?0:2,maximumFractionDigits:kr?0:2}):'차트로 보기')+'</td><td class="num '+cl(ch)+'">'+(ch===null?'—':spc(ch))+'</td><td><a href="#" data-wdel="'+esc(x.tk)+'" aria-label="삭제" style="text-decoration:none">✕</a></td></tr>';});
+  return h+'</tbody></table></div><p class="note">미장 시세는 시세 연동 상태에 따라 표시됩니다. 국장은 시세 서버가 없어 현재가는 비고, 차트만 볼 수 있습니다. 검색 목록은 자주 찾는 종목만 들어 있어서, 없는 종목은 티커나 6자리 코드를 그대로 입력하면 추가됩니다.</p></div>';}
+function bindWatch(){
+  var res=document.getElementById('wRes'),q=document.getElementById('wq');
+  var show=function(){var v=q.value.trim(),u=v.toUpperCase(),l=v.toLowerCase();if(!v){res.innerHTML='';return;}
+    var hit=SDB.filter(function(x){return x[0].toLowerCase().indexOf(l)>=0||x[1].toLowerCase().indexOf(l)>=0;}).slice(0,8),h='';
+    hit.forEach(function(x){var on=(S.watch||[]).indexOf(x[0])>=0;h+='<div class="row" style="gap:8px;align-items:center;padding:4px 0"><span class="pill">'+(x[2]==='KR'?'국장':'미장')+'</span><b>'+esc(x[1])+'</b><span class="sub">'+esc(x[0])+'</span><button type="button" class="'+(on?'ghost':'')+'" data-wadd="'+esc(x[0])+'">'+(on?'★ 추가됨':'☆ 추가')+'</button></div>';});
+    if(/^([A-Z][A-Z.\-]{0,5}|\d{6})$/.test(u)&&!SDB.some(function(x){return x[0]===u;}))h+='<div class="row" style="gap:8px;align-items:center;padding:4px 0"><span class="pill">'+(/^\d/.test(u)?'국장':'미장')+'</span><b>'+esc(u)+'</b><span class="sub">코드로 직접 추가</span><button type="button" data-wadd="'+esc(u)+'">☆ 추가</button></div>';
+    res.innerHTML=h||'<span class="sub">검색 결과가 없습니다. 티커(영문)나 6자리 코드를 입력해 보세요.</span>';
+    Array.prototype.forEach.call(res.querySelectorAll('[data-wadd]'),function(b){b.onclick=function(){watchAdd(b.getAttribute('data-wadd'));render();setTimeout(function(){liveRefresh();},50);};});};
+  if(q)q.oninput=show;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-wf]'),function(b){b.onclick=function(){S.wf=b.getAttribute('data-wf');save();render();};});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mkn]'),function(e){e.onclick=function(){openMk(e.getAttribute('data-mkn'));};});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-wdel]'),function(a){a.onclick=function(ev){ev.preventDefault();ev.stopPropagation();S.watch=(S.watch||[]).filter(function(x){return x!==a.getAttribute('data-wdel');});save();render();};});}
 function render(){
   var nav=document.getElementById('monthNav');
   var as=['전체'].concat(accts());
@@ -960,7 +987,7 @@ function render(){
   liveNote();
   var t=document.getElementById('tabs');t.innerHTML='';
   TABS.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x[1];if(x[0]===tab)b.className='on';b.onclick=function(){location.hash=x[0];};t.appendChild(b);});
-  var fn={dash:vDash,all:vAll,cp:vCp,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
+  var fn={dash:vDash,all:vAll,watch:vWatch,cp:vCp,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
   document.getElementById('main').innerHTML=fn();
   bind();
   if(tab==='set')document.getElementById('backup').value=JSON.stringify(S);
@@ -1001,6 +1028,7 @@ function bind(){
   if(tab==='ana')bindAna();
   if(tab==='dash'){bindP30();bindDip();}
   if(tab==='cp')bindCp();
+  if(tab==='watch')bindWatch();
   if(tab==='rl')bindRl();
   if(tab==='notes')bindJournal();
   q('#noteForm',function(f){f.onsubmit=function(e){e.preventDefault();S.notes.push({id:S.nextId.notes++,date:v('nDate'),tag:v('nTag'),text:v('nText')});save();render();};});
