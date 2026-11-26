@@ -986,7 +986,7 @@ var MK=[
  {n:'현대차',s:'005380.KS',c:'005380',big:1,u:'원',hl:['HYUNDAI','HYUNDAIMOTOR'],krw:1},
  {n:'나스닥100 선물',s:'NQ=F',c:'선물',big:1,u:'',hl:['XYZ100']},
  {n:'비트코인',s:'BTC-KRW',c:'BTC',big:1,u:'원',int:1,coin:'BTC'},
- {n:'코스피',s:'^KS11',u:''},{n:'코스닥',s:'^KQ11',u:''},{n:'코스피200',s:'^KS200',u:''},{n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'나스닥',s:'^IXIC',u:''},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']}];
+ {n:'원/달러',s:'KRW=X',u:'원',fxItem:1},{n:'S&P500',s:'^GSPC',u:'',hl:['SP500']}];
 async function hlPost(body){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},8000);var r=await fetch('https://api.hyperliquid.xyz/info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ac.signal});clearTimeout(tm);return r.ok?await r.json():null;}catch(e){return null;}}
 async function hlItem(coin,mid,mul){
   var now=Date.now(),cs=await hlPost({type:'candleSnapshot',req:{coin:coin,interval:'15m',startTime:now-86400000,endTime:now}});
