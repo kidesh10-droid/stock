@@ -1005,7 +1005,7 @@ async function transl(text){
   if(m&&m.responseData&&m.responseData.translatedText&&!/MYMEMORY|QUERY LENGTH/i.test(m.responseData.translatedText))return m.responseData.translatedText;
   return '';}
 async function newsRefresh(){
-  if(NEWS.busy)return;NEWS.busy=true;NEWS.last=Date.now();newsPaint();
+  if(NEWS.busy&&Date.now()-(NEWS.bt||0)<45000)return;NEWS.busy=true;NEWS.bt=Date.now();NEWS.last=Date.now();newsPaint();
   try{
     var res=await Promise.all(NFEEDS.map(function(f){return rssGet(f.u).then(function(a){return a.map(function(x){x.feed=f.n;return x;});});}));
     var seen={},all=[],now=Date.now();
@@ -1019,7 +1019,7 @@ async function newsRefresh(){
     all.forEach(function(x){x.rank=x.score-(x.ts?Math.max(0,(now-x.ts)/3600e3)/1.5:9);});all.sort(function(a,b){return b.rank-a.rank||b.ts-a.ts;});
     var cache=ntr(),todo=[];
     all.forEach(function(x){if(!x.ko){if(cache[x.title])x.ko=cache[x.title];else if(x.score>=3&&todo.length<14)todo.push(x);}});
-    NEWS.items=all;NEWS.ok=res.filter(function(a){return a.length;}).length;NEWS.t=now;NEWS.src=NFEEDS.length+'곳 중 '+NEWS.ok+'곳 연결';
+    NEWS.ok=res.filter(function(a){return a.length;}).length;if(NEWS.ok&&all.length){NEWS.items=all;NEWS.t=now;}NEWS.src=NFEEDS.length+'곳 중 '+NEWS.ok+'곳 연결';
     newsPaint();
     await Promise.all(todo.map(function(x){return transl(x.title).then(function(t){if(t){x.ko=t;cache[x.title]=t;}});}));
     try{var ks=Object.keys(cache);if(ks.length>300)ks.slice(0,ks.length-300).forEach(function(k){delete cache[k];});localStorage.setItem('stk_news_tr',JSON.stringify(cache));}catch(e){}
@@ -1030,13 +1030,13 @@ function ago(ts){if(!ts)return '';var m=Math.round((Date.now()-ts)/60000);return
 function newsRow(x){return '<div style="padding:8px 0;border-bottom:1px solid var(--line,#e5e7ee)">'+(NK_HI.test(x.title)?'<span class="pill bad">🚨 속보성</span> ':'')+'<a href="'+esc(x.link)+'" target="_blank" rel="noopener noreferrer" style="font-weight:600;text-decoration:none">'+esc(x.ko||x.title)+'</a>'+(x.ko&&x.ko!==x.title?'<div class="sub" style="margin-top:2px">'+esc(x.title)+'</div>':(!x.ko?'<div class="sub" style="margin-top:2px">번역 대기 중이거나 번역 실패 (원문)</div>':''))+'<div class="sub">'+esc(x.src)+(x.ts?' · '+ago(x.ts):'')+'</div></div>';}
 function vNewsCard(){
   var it=NEWS.items.filter(function(x){return x.score>=4;}).slice(0,6);
-  var h='<div class="card"><h2>중요 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · 5분마다 갱신':'불러오는 중…')+'</span> <button type="button" class="ghost" id="nRef2">'+(NEWS.busy?'불러오는 중…':'새로고침')+'</button></h2>';
+  var h='<div class="card"><h2>중요 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · 5분마다 자동 갱신'+(NEWS.last&&NEWS.t&&NEWS.last-NEWS.t>60000&&!NEWS.busy?' (최근 갱신 실패, 이전 결과)':''):'불러오는 중…')+'</span> <button type="button" class="ghost" id="nRef2">'+(NEWS.busy?'불러오는 중…':'새로고침')+'</button></h2>';
   if(!it.length)h+='<p class="note">'+(NEWS.busy||!NEWS.t?'뉴스를 불러오는 중입니다.':'지금 표시할 중요 뉴스가 없거나 뉴스 서버 연결에 실패했습니다.')+'</p>';
   else h+=it.map(newsRow).join('')+'<div style="margin-top:8px"><a href="#news">뉴스 더 보기 →</a></div>';
   return h+'</div>';}
 function vNews(){
   var f=S.nf||'중요',L=NEWS.items.filter(function(x){return f==='전체'||(f==='중요'?x.score>=4:NK_STK.test(x.title));}).slice(0,60);
-  var h='<div class="card"><h2>금융·미국 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · '+esc(NEWS.src):'불러오는 중…')+'</span></h2><div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+  var h='<div class="card"><h2>금융·미국 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · '+esc(NEWS.src)+(NEWS.last&&NEWS.last-NEWS.t>60000&&!NEWS.busy?' (최근 갱신 실패, 이전 결과)':''):'불러오는 중…')+'</span></h2><div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">'
    +['중요','내 관심','전체'].map(function(t){return '<button type="button" class="'+(t===f?'':'ghost')+'" data-nf="'+t+'">'+t+'</button>';}).join('')+'<button type="button" class="ghost" id="nRef">'+(NEWS.busy?'불러오는 중…':'새로고침')+'</button></div>';
   h+=L.length?L.map(newsRow).join(''):'<p class="note">'+(NEWS.busy||!NEWS.t?'뉴스를 불러오는 중입니다.':'표시할 뉴스가 없습니다. 뉴스 서버 연결에 실패했을 수 있어요. 새로고침을 눌러 보세요.')+'</p>';
   return h+'<p class="note">여러 뉴스 서비스(구글뉴스, CNBC)의 제목을 모아 키워드(파산, 금리, 관세, 급락 등)로 중요도를 매기고, 영어는 자동 번역합니다. 번역과 중요도는 자동이라 틀릴 수 있고 속보성 표시는 사실 확인이 아닙니다. 중요한 내용은 링크로 원문과 출처를 꼭 확인하세요.</p></div>';}
@@ -1044,7 +1044,7 @@ function bindNews(){
   Array.prototype.forEach.call(document.querySelectorAll('[data-nf]'),function(b){b.onclick=function(){S.nf=b.getAttribute('data-nf');save();render();};});
   var r=document.getElementById('nRef');if(r)r.onclick=function(){NEWS.last=0;newsRefresh();};
   if(Date.now()-(NEWS.last||0)>300000)newsRefresh();}
-function newsLoop(){setInterval(function(){if(document.visibilityState==='hidden'||S.set.live===false)return;newsRefresh();},300000);}
+function newsLoop(){var go=function(){if(document.visibilityState==='hidden'||S.set.live===false)return;if(Date.now()-(NEWS.last||0)>=290000)newsRefresh();};setInterval(go,30000);document.addEventListener('visibilitychange',go);window.addEventListener('focus',go);}
 function render(){
   var nav=document.getElementById('monthNav');
   var as=['전체'].concat(accts());
