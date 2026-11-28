@@ -979,9 +979,9 @@ function bindWatch(){
 /* ---------- 뉴스 (자동 수집 · 중요도 점수 · 한국어 번역) ---------- */
 var NEWS={items:[],t:0,busy:false,ok:0,src:''};
 var NFEEDS=[
- {n:'구글뉴스 한국',u:'https://news.google.com/rss/search?q='+encodeURIComponent('미국 증시 OR 연준 OR 은행 파산 OR 관세 OR 금리 OR 나스닥 when:1d')+'&hl=ko&gl=KR&ceid=KR:ko'},
- {n:'구글뉴스 종목',u:'https://news.google.com/rss/search?q='+encodeURIComponent('엔비디아 OR 테슬라 OR 반도체 OR 팔란티어 OR 비트코인 when:1d')+'&hl=ko&gl=KR&ceid=KR:ko'},
- {n:'Google News US',u:'https://news.google.com/rss/search?q='+encodeURIComponent('Wall Street OR Fed OR "bank failure" OR tariffs OR Nasdaq OR Nvidia when:1d')+'&hl=en-US&gl=US&ceid=US:en'},
+ {n:'구글뉴스 한국',u:'https://news.google.com/rss/search?q='+encodeURIComponent('미국 증시 OR 연준 OR 은행 파산 OR 관세 OR 금리 OR 나스닥 when:12h')+'&hl=ko&gl=KR&ceid=KR:ko'},
+ {n:'구글뉴스 종목',u:'https://news.google.com/rss/search?q='+encodeURIComponent('엔비디아 OR 테슬라 OR 반도체 OR 팔란티어 OR 비트코인 when:12h')+'&hl=ko&gl=KR&ceid=KR:ko'},
+ {n:'Google News US',u:'https://news.google.com/rss/search?q='+encodeURIComponent('Wall Street OR Fed OR "bank failure" OR tariffs OR Nasdaq OR Nvidia when:12h')+'&hl=en-US&gl=US&ceid=US:en'},
  {n:'CNBC Markets',u:'https://www.cnbc.com/id/10000664/device/rss/rss.html'}];
 var NK_HI=/파산|부도|디폴트|뱅크런|긴급|서킷|거래정지|bankruptcy|bank failure|bank run|collapse|default|insolven|emergency|trading halt|circuit breaker/i;
 var NK_MID=/연준|FOMC|금리|CPI|물가|고용|실업|관세|제재|급락|폭락|급등|쇼크|침체|강등|파월|트럼프|전쟁|실적|tariff|sanction|plunge|crash|sell-?off|surge|shock|recession|downgrade|powell|trump|\bwar\b|earnings|\bFed\b|\bSEC\b|\bFDIC\b/i;
@@ -1012,10 +1012,10 @@ async function newsRefresh(){
       var title=String(x.title||'').replace(/\s+/g,' ').trim(),src=x.source||'',m=title.match(/^(.*) - ([^-]{2,40})$/);
       if(m){title=m[1];if(!src)src=m[2];}
       if(!title||!/^https?:/.test(x.link||''))return;
-      var ts=Date.parse(x.date)||0;if(ts&&now-ts>36*3600e3)return;
+      var ds=String(x.date||''),ts=(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(ds)?Date.parse(ds.replace(' ','T')+'Z'):Date.parse(ds))||0;if(ts&&now-ts>36*3600e3)return;
       var k=title.toLowerCase().replace(/[^a-z0-9가-힣]/g,'').slice(0,28);if(seen[k])return;seen[k]=1;
       all.push({title:title,ko:/[가-힣]/.test(title)?title:'',link:x.link,ts:ts,src:src||x.feed,score:newsScore(title)});});});
-    all.forEach(function(x){x.rank=x.score-(x.ts?Math.max(0,(now-x.ts)/3600e3)/4:9);});all.sort(function(a,b){return b.rank-a.rank||b.ts-a.ts;});
+    all.forEach(function(x){x.rank=x.score-(x.ts?Math.max(0,(now-x.ts)/3600e3)/1.5:9);});all.sort(function(a,b){return b.rank-a.rank||b.ts-a.ts;});
     var cache=ntr(),todo=[];
     all.forEach(function(x){if(!x.ko){if(cache[x.title])x.ko=cache[x.title];else if(x.score>=3&&todo.length<14)todo.push(x);}});
     NEWS.items=all;NEWS.ok=res.filter(function(a){return a.length;}).length;NEWS.t=now;NEWS.src=NFEEDS.length+'곳 중 '+NEWS.ok+'곳 연결';
