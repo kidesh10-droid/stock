@@ -979,14 +979,15 @@ function bindWatch(){
 /* ---------- 뉴스 (자동 수집 · 중요도 점수 · 한국어 번역) ---------- */
 var NEWS={items:[],t:0,busy:false,ok:0,src:''};
 var NFEEDS=[
- {n:'구글뉴스 한국',u:'https://news.google.com/rss/search?q='+encodeURIComponent('미국 증시 OR 연준 OR 은행 파산 OR 관세 OR 금리 OR 나스닥 when:12h')+'&hl=ko&gl=KR&ceid=KR:ko'},
- {n:'구글뉴스 종목',u:'https://news.google.com/rss/search?q='+encodeURIComponent('엔비디아 OR 테슬라 OR 반도체 OR 팔란티어 OR 비트코인 when:12h')+'&hl=ko&gl=KR&ceid=KR:ko'},
- {n:'Google News US',u:'https://news.google.com/rss/search?q='+encodeURIComponent('Wall Street OR Fed OR "bank failure" OR tariffs OR Nasdaq OR Nvidia when:12h')+'&hl=en-US&gl=US&ceid=US:en'},
- {n:'CNBC Markets',u:'https://www.cnbc.com/id/10000664/device/rss/rss.html'}];
-var NK_HI=/파산|부도|디폴트|뱅크런|긴급|서킷|거래정지|bankruptcy|bank failure|bank run|collapse|default|insolven|emergency|trading halt|circuit breaker/i;
-var NK_MID=/연준|FOMC|금리|CPI|물가|고용|실업|관세|제재|급락|폭락|급등|쇼크|침체|강등|파월|트럼프|전쟁|실적|tariff|sanction|plunge|crash|sell-?off|surge|shock|recession|downgrade|powell|trump|\bwar\b|earnings|\bFed\b|\bSEC\b|\bFDIC\b/i;
-var NK_STK=/나스닥|엔비디아|테슬라|팔란티어|반도체|삼성전자|하이닉스|비트코인|nasdaq|nvidia|tesla|palantir|semiconductor|bitcoin|tqqq|soxl|tsll|pltu/i;
-function newsScore(t){var s=0;if(NK_HI.test(t))s+=6;if(NK_MID.test(t))s+=4;if(NK_STK.test(t))s+=3;return s;}
+ {n:'구글뉴스 이슈',u:'https://news.google.com/rss/search?q='+encodeURIComponent('은행 파산 OR 뱅크런 OR 구제금융 OR 긴급 OR 행정명령 OR 제재 OR 관세 OR 신용등급 OR 상장폐지 OR 거래정지 OR 금융위기 when:12h')+'&hl=ko&gl=KR&ceid=KR:ko'},
+ {n:'구글뉴스 종목이슈',u:'https://news.google.com/rss/search?q='+encodeURIComponent('(엔비디아 OR 테슬라 OR 팔란티어 OR 반도체 OR 비트코인) (규제 OR 소송 OR 인수 OR 승인 OR 리콜 OR 수출규제 OR 조사 OR 해킹 OR 제재) when:12h')+'&hl=ko&gl=KR&ceid=KR:ko'},
+ {n:'Google News US',u:'https://news.google.com/rss/search?q='+encodeURIComponent('"bank failure" OR FDIC OR "emergency" OR "executive order" OR tariffs OR sanctions OR "SEC charges" OR "trading halt" OR downgrade OR bankruptcy when:12h')+'&hl=en-US&gl=US&ceid=US:en'},
+ {n:'CNBC Top',u:'https://www.cnbc.com/id/100003114/device/rss/rss.html'}];
+var NK_HI=/파산|부도|디폴트|뱅크런|구제금융|긴급|서킷|거래정지|상장폐지|국유화|bankruptcy|bank failure|bank run|collapse|default|insolven|emergency|trading halt|circuit breaker|bailout|FDIC/i;
+var NK_MID=/행정명령|제재|관세|규제|소송|조사|수사|해킹|리콜|인수|합병|승인|금리\s*(인상|인하|동결|결정)|연준|FOMC|신용등급|강등|파월|전쟁|침체|executive order|sanction|tariff|regulat|lawsuit|probe|investigat|hack|recall|acquisition|merger|approv|rate (hike|cut|decision)|downgrade|powell|\bwar\b|recession/i;
+var NK_STK=/엔비디아|테슬라|팔란티어|반도체|삼성전자|하이닉스|비트코인|nvidia|tesla|palantir|semiconductor|bitcoin|tqqq|soxl|tsll|pltu/i;
+var NK_NOISE=/마감|브리핑|BRIEF|주간|반등|급등|급락|폭락|상승\s*출발|하락\s*출발|올랐|내렸|전망|오늘의|시황|증시 요약|코스피|코스닥|나스닥 지수|종가|weekly|rall(y|ies)|closes?\b|stocks? (rise|fall|gain|slip)|market wrap|what to watch|futures/i;
+function newsScore(t){var s=0;if(NK_HI.test(t))s+=6;if(NK_MID.test(t))s+=4;if(NK_STK.test(t))s+=2;if(NK_NOISE.test(t)&&!NK_HI.test(t))s-=6;return s;}
 async function nfetch(u,ms){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},ms||7000);var r=await fetch(u,{cache:'no-store',signal:ac.signal});clearTimeout(tm);return r.ok?await r.text():null;}catch(e){return null;}}
 function parseRss(txt){var out=[];try{var d=new DOMParser().parseFromString(txt,'text/xml');Array.prototype.forEach.call(d.querySelectorAll('item'),function(it){var g=function(k){var e=it.querySelector(k);return e?e.textContent:'';};out.push({title:g('title'),link:g('link'),date:g('pubDate'),source:g('source')});});}catch(e){}return out;}
 async function rssGet(u){
