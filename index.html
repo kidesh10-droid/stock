@@ -990,6 +990,7 @@ function newsScore(t){var s=0;if(NK_HI.test(t))s+=6;if(NK_MID.test(t))s+=4;if(NK
 async function nfetch(u,ms){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},ms||7000);var r=await fetch(u,{cache:'no-store',signal:ac.signal});clearTimeout(tm);return r.ok?await r.text():null;}catch(e){return null;}}
 function parseRss(txt){var out=[];try{var d=new DOMParser().parseFromString(txt,'text/xml');Array.prototype.forEach.call(d.querySelectorAll('item'),function(it){var g=function(k){var e=it.querySelector(k);return e?e.textContent:'';};out.push({title:g('title'),link:g('link'),date:g('pubDate'),source:g('source')});});}catch(e){}return out;}
 async function rssGet(u){
+  u=u+(u.indexOf('?')<0?'?':'&')+'_='+Math.floor(Date.now()/60000);
   var j=await jget('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(u),7000);
   if(j&&j.items&&j.items.length)return j.items.map(function(x){return {title:x.title,link:x.link,date:x.pubDate,source:''};});
   var prox=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
@@ -1003,7 +1004,7 @@ async function transl(text){
   if(m&&m.responseData&&m.responseData.translatedText&&!/MYMEMORY|QUERY LENGTH/i.test(m.responseData.translatedText))return m.responseData.translatedText;
   return '';}
 async function newsRefresh(){
-  if(NEWS.busy)return;NEWS.busy=true;NEWS.last=Date.now();
+  if(NEWS.busy)return;NEWS.busy=true;NEWS.last=Date.now();newsPaint();
   try{
     var res=await Promise.all(NFEEDS.map(function(f){return rssGet(f.u).then(function(a){return a.map(function(x){x.feed=f.n;return x;});});}));
     var seen={},all=[],now=Date.now();
@@ -1014,7 +1015,7 @@ async function newsRefresh(){
       var ts=Date.parse(x.date)||0;if(ts&&now-ts>36*3600e3)return;
       var k=title.toLowerCase().replace(/[^a-z0-9가-힣]/g,'').slice(0,28);if(seen[k])return;seen[k]=1;
       all.push({title:title,ko:/[가-힣]/.test(title)?title:'',link:x.link,ts:ts,src:src||x.feed,score:newsScore(title)});});});
-    all.sort(function(a,b){return b.score-a.score||b.ts-a.ts;});
+    all.forEach(function(x){x.rank=x.score-(x.ts?Math.max(0,(now-x.ts)/3600e3)/4:9);});all.sort(function(a,b){return b.rank-a.rank||b.ts-a.ts;});
     var cache=ntr(),todo=[];
     all.forEach(function(x){if(!x.ko){if(cache[x.title])x.ko=cache[x.title];else if(x.score>=3&&todo.length<14)todo.push(x);}});
     NEWS.items=all;NEWS.ok=res.filter(function(a){return a.length;}).length;NEWS.t=now;NEWS.src=NFEEDS.length+'곳 중 '+NEWS.ok+'곳 연결';
@@ -1028,14 +1029,14 @@ function ago(ts){if(!ts)return '';var m=Math.round((Date.now()-ts)/60000);return
 function newsRow(x){return '<div style="padding:8px 0;border-bottom:1px solid var(--line,#e5e7ee)">'+(NK_HI.test(x.title)?'<span class="pill bad">🚨 속보성</span> ':'')+'<a href="'+esc(x.link)+'" target="_blank" rel="noopener noreferrer" style="font-weight:600;text-decoration:none">'+esc(x.ko||x.title)+'</a>'+(x.ko&&x.ko!==x.title?'<div class="sub" style="margin-top:2px">'+esc(x.title)+'</div>':(!x.ko?'<div class="sub" style="margin-top:2px">번역 대기 중이거나 번역 실패 (원문)</div>':''))+'<div class="sub">'+esc(x.src)+(x.ts?' · '+ago(x.ts):'')+'</div></div>';}
 function vNewsCard(){
   var it=NEWS.items.filter(function(x){return x.score>=4;}).slice(0,6);
-  var h='<div class="card"><h2>중요 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · 5분마다 갱신':'불러오는 중…')+'</span></h2>';
+  var h='<div class="card"><h2>중요 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · 5분마다 갱신':'불러오는 중…')+'</span> <button type="button" class="ghost" id="nRef2">'+(NEWS.busy?'불러오는 중…':'새로고침')+'</button></h2>';
   if(!it.length)h+='<p class="note">'+(NEWS.busy||!NEWS.t?'뉴스를 불러오는 중입니다.':'지금 표시할 중요 뉴스가 없거나 뉴스 서버 연결에 실패했습니다.')+'</p>';
   else h+=it.map(newsRow).join('')+'<div style="margin-top:8px"><a href="#news">뉴스 더 보기 →</a></div>';
   return h+'</div>';}
 function vNews(){
   var f=S.nf||'중요',L=NEWS.items.filter(function(x){return f==='전체'||(f==='중요'?x.score>=4:NK_STK.test(x.title));}).slice(0,60);
   var h='<div class="card"><h2>금융·미국 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · '+esc(NEWS.src):'불러오는 중…')+'</span></h2><div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">'
-   +['중요','내 관심','전체'].map(function(t){return '<button type="button" class="'+(t===f?'':'ghost')+'" data-nf="'+t+'">'+t+'</button>';}).join('')+'<button type="button" class="ghost" id="nRef">새로고침</button></div>';
+   +['중요','내 관심','전체'].map(function(t){return '<button type="button" class="'+(t===f?'':'ghost')+'" data-nf="'+t+'">'+t+'</button>';}).join('')+'<button type="button" class="ghost" id="nRef">'+(NEWS.busy?'불러오는 중…':'새로고침')+'</button></div>';
   h+=L.length?L.map(newsRow).join(''):'<p class="note">'+(NEWS.busy||!NEWS.t?'뉴스를 불러오는 중입니다.':'표시할 뉴스가 없습니다. 뉴스 서버 연결에 실패했을 수 있어요. 새로고침을 눌러 보세요.')+'</p>';
   return h+'<p class="note">여러 뉴스 서비스(구글뉴스, CNBC)의 제목을 모아 키워드(파산, 금리, 관세, 급락 등)로 중요도를 매기고, 영어는 자동 번역합니다. 번역과 중요도는 자동이라 틀릴 수 있고 속보성 표시는 사실 확인이 아닙니다. 중요한 내용은 링크로 원문과 출처를 꼭 확인하세요.</p></div>';}
 function bindNews(){
@@ -1094,7 +1095,7 @@ function bind(){
   if(tab==='btc')bindBtc();
   if(tab==='pen')bindPen();
   if(tab==='ana')bindAna();
-  if(tab==='dash'){bindP30();bindDip();if(Date.now()-(NEWS.last||0)>300000)newsRefresh();}
+  if(tab==='dash'){var r2=document.getElementById('nRef2');if(r2)r2.onclick=function(){NEWS.last=0;newsRefresh();};bindP30();bindDip();if(Date.now()-(NEWS.last||0)>300000)newsRefresh();}
   if(tab==='news')bindNews();
   if(tab==='cp')bindCp();
   if(tab==='watch')bindWatch();
@@ -1292,7 +1293,4 @@ window.addEventListener('hashchange',route);
 S=seed();route();render();load();
 setTimeout(function(){liveRefresh();liveLoop();newsLoop();},1800);
 })();
-
-</script>
-</body>
-</html>
+</script></body></html>
