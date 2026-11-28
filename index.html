@@ -155,7 +155,7 @@ html{-webkit-text-size-adjust:100%}
 <script>
 (function(){
 'use strict';
-var TABS=[['dash','대시보드'],['all','합산'],['watch','관심종목'],['cp','쿠팡'],['buy','신규 매수'],['btc','비트코인'],['pen','연금'],['ana','대응 분석'],['rl','실현손익'],['day','일자별 거래'],['msum','월별 집계'],['items','종목·평단'],['notes','매매일지'],['set','설정'],['help','사용 방법']];
+var TABS=[['dash','대시보드'],['all','합산'],['watch','관심종목'],['news','뉴스'],['cp','쿠팡'],['buy','신규 매수'],['btc','비트코인'],['pen','연금'],['ana','대응 분석'],['rl','실현손익'],['day','일자별 거래'],['msum','월별 집계'],['items','종목·평단'],['notes','매매일지'],['set','설정'],['help','사용 방법']];
 var AUTO=null;
 function autoOn(tk){return S.set.auto===true&&AUTO&&AUTO.prices&&AUTO.prices[tk]&&num(AUTO.prices[tk].p)>0;}
 function px(tk){return autoOn(tk)?num(AUTO.prices[tk].p):num(S.prices[tk]);}
@@ -333,7 +333,7 @@ function vDash(){
   var pp=0,pv=0;(S.pens||[]).forEach(function(p){pp+=num(p.principal);pv+=num(p.value);});
   var allC=cost+cc+pp,allV=val+cv+pv,allPl=allV-allC,allAll=tv+cvAll+pv;
   var net=tv+coinV+penV+num(S.set.cash)-num(S.set.loan);
-  var h=vMkt()+vDip();
+  var h=vMkt()+vNewsCard()+vDip();
   h+='<section class="tiles">'
    +tile('전체 투자자산 (주식+코인+연금)',won(allAll)+'원','주식 '+won(tv)+' · 코인 '+won(cvAll)+' · 연금 '+won(pv))
    +tile('전체 투자 손익 (입력 완료분)',sw(allPl)+'원',allC>0?spc(allPl/allC):'—',cl(allPl))
@@ -975,6 +975,74 @@ function bindWatch(){
   Array.prototype.forEach.call(document.querySelectorAll('[data-wf]'),function(b){b.onclick=function(){S.wf=b.getAttribute('data-wf');save();render();};});
   Array.prototype.forEach.call(document.querySelectorAll('[data-mkn]'),function(e){e.onclick=function(){openMk(e.getAttribute('data-mkn'));};});
   Array.prototype.forEach.call(document.querySelectorAll('[data-wdel]'),function(a){a.onclick=function(ev){ev.preventDefault();ev.stopPropagation();S.watch=(S.watch||[]).filter(function(x){return x!==a.getAttribute('data-wdel');});save();render();};});}
+
+/* ---------- 뉴스 (자동 수집 · 중요도 점수 · 한국어 번역) ---------- */
+var NEWS={items:[],t:0,busy:false,ok:0,src:''};
+var NFEEDS=[
+ {n:'구글뉴스 한국',u:'https://news.google.com/rss/search?q='+encodeURIComponent('미국 증시 OR 연준 OR 은행 파산 OR 관세 OR 금리 OR 나스닥 when:1d')+'&hl=ko&gl=KR&ceid=KR:ko'},
+ {n:'구글뉴스 종목',u:'https://news.google.com/rss/search?q='+encodeURIComponent('엔비디아 OR 테슬라 OR 반도체 OR 팔란티어 OR 비트코인 when:1d')+'&hl=ko&gl=KR&ceid=KR:ko'},
+ {n:'Google News US',u:'https://news.google.com/rss/search?q='+encodeURIComponent('Wall Street OR Fed OR "bank failure" OR tariffs OR Nasdaq OR Nvidia when:1d')+'&hl=en-US&gl=US&ceid=US:en'},
+ {n:'CNBC Markets',u:'https://www.cnbc.com/id/10000664/device/rss/rss.html'}];
+var NK_HI=/파산|부도|디폴트|뱅크런|긴급|서킷|거래정지|bankruptcy|bank failure|bank run|collapse|default|insolven|emergency|trading halt|circuit breaker/i;
+var NK_MID=/연준|FOMC|금리|CPI|물가|고용|실업|관세|제재|급락|폭락|급등|쇼크|침체|강등|파월|트럼프|전쟁|실적|tariff|sanction|plunge|crash|sell-?off|surge|shock|recession|downgrade|powell|trump|\bwar\b|earnings|\bFed\b|\bSEC\b|\bFDIC\b/i;
+var NK_STK=/나스닥|엔비디아|테슬라|팔란티어|반도체|삼성전자|하이닉스|비트코인|nasdaq|nvidia|tesla|palantir|semiconductor|bitcoin|tqqq|soxl|tsll|pltu/i;
+function newsScore(t){var s=0;if(NK_HI.test(t))s+=6;if(NK_MID.test(t))s+=4;if(NK_STK.test(t))s+=3;return s;}
+async function nfetch(u,ms){try{var ac=new AbortController(),tm=setTimeout(function(){ac.abort();},ms||7000);var r=await fetch(u,{cache:'no-store',signal:ac.signal});clearTimeout(tm);return r.ok?await r.text():null;}catch(e){return null;}}
+function parseRss(txt){var out=[];try{var d=new DOMParser().parseFromString(txt,'text/xml');Array.prototype.forEach.call(d.querySelectorAll('item'),function(it){var g=function(k){var e=it.querySelector(k);return e?e.textContent:'';};out.push({title:g('title'),link:g('link'),date:g('pubDate'),source:g('source')});});}catch(e){}return out;}
+async function rssGet(u){
+  var j=await jget('https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(u),7000);
+  if(j&&j.items&&j.items.length)return j.items.map(function(x){return {title:x.title,link:x.link,date:x.pubDate,source:''};});
+  var prox=['https://api.allorigins.win/raw?url=','https://corsproxy.io/?'];
+  for(var i=0;i<prox.length;i++){var t=await nfetch(prox[i]+encodeURIComponent(u),7000);if(t){var it=parseRss(t);if(it.length)return it;}}
+  return [];}
+function ntr(){try{return JSON.parse(localStorage.getItem('stk_news_tr')||'{}');}catch(e){return {};}}
+async function transl(text){
+  var j=await jget('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ko&dt=t&q='+encodeURIComponent(text),6000);
+  if(j&&j[0]&&j[0].length){var r='';j[0].forEach(function(p){if(p&&p[0])r+=p[0];});if(r)return r;}
+  var m=await jget('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair=en|ko',6000);
+  if(m&&m.responseData&&m.responseData.translatedText&&!/MYMEMORY|QUERY LENGTH/i.test(m.responseData.translatedText))return m.responseData.translatedText;
+  return '';}
+async function newsRefresh(){
+  if(NEWS.busy)return;NEWS.busy=true;NEWS.last=Date.now();
+  try{
+    var res=await Promise.all(NFEEDS.map(function(f){return rssGet(f.u).then(function(a){return a.map(function(x){x.feed=f.n;return x;});});}));
+    var seen={},all=[],now=Date.now();
+    res.forEach(function(a){a.forEach(function(x){
+      var title=String(x.title||'').replace(/\s+/g,' ').trim(),src=x.source||'',m=title.match(/^(.*) - ([^-]{2,40})$/);
+      if(m){title=m[1];if(!src)src=m[2];}
+      if(!title||!/^https?:/.test(x.link||''))return;
+      var ts=Date.parse(x.date)||0;if(ts&&now-ts>36*3600e3)return;
+      var k=title.toLowerCase().replace(/[^a-z0-9가-힣]/g,'').slice(0,28);if(seen[k])return;seen[k]=1;
+      all.push({title:title,ko:/[가-힣]/.test(title)?title:'',link:x.link,ts:ts,src:src||x.feed,score:newsScore(title)});});});
+    all.sort(function(a,b){return b.score-a.score||b.ts-a.ts;});
+    var cache=ntr(),todo=[];
+    all.forEach(function(x){if(!x.ko){if(cache[x.title])x.ko=cache[x.title];else if(x.score>=3&&todo.length<14)todo.push(x);}});
+    NEWS.items=all;NEWS.ok=res.filter(function(a){return a.length;}).length;NEWS.t=now;NEWS.src=NFEEDS.length+'곳 중 '+NEWS.ok+'곳 연결';
+    newsPaint();
+    await Promise.all(todo.map(function(x){return transl(x.title).then(function(t){if(t){x.ko=t;cache[x.title]=t;}});}));
+    try{var ks=Object.keys(cache);if(ks.length>300)ks.slice(0,ks.length-300).forEach(function(k){delete cache[k];});localStorage.setItem('stk_news_tr',JSON.stringify(cache));}catch(e){}
+  }catch(e){}
+  NEWS.busy=false;newsPaint();}
+function newsPaint(){if(tab!=='news'&&tab!=='dash')return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))return;render();}
+function ago(ts){if(!ts)return '';var m=Math.round((Date.now()-ts)/60000);return m<1?'방금':m<60?m+'분 전':m<1440?Math.floor(m/60)+'시간 전':Math.floor(m/1440)+'일 전';}
+function newsRow(x){return '<div style="padding:8px 0;border-bottom:1px solid var(--line,#e5e7ee)">'+(NK_HI.test(x.title)?'<span class="pill bad">🚨 속보성</span> ':'')+'<a href="'+esc(x.link)+'" target="_blank" rel="noopener noreferrer" style="font-weight:600;text-decoration:none">'+esc(x.ko||x.title)+'</a>'+(x.ko&&x.ko!==x.title?'<div class="sub" style="margin-top:2px">'+esc(x.title)+'</div>':(!x.ko?'<div class="sub" style="margin-top:2px">번역 대기 중이거나 번역 실패 (원문)</div>':''))+'<div class="sub">'+esc(x.src)+(x.ts?' · '+ago(x.ts):'')+'</div></div>';}
+function vNewsCard(){
+  var it=NEWS.items.filter(function(x){return x.score>=4;}).slice(0,6);
+  var h='<div class="card"><h2>중요 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · 5분마다 갱신':'불러오는 중…')+'</span></h2>';
+  if(!it.length)h+='<p class="note">'+(NEWS.busy||!NEWS.t?'뉴스를 불러오는 중입니다.':'지금 표시할 중요 뉴스가 없거나 뉴스 서버 연결에 실패했습니다.')+'</p>';
+  else h+=it.map(newsRow).join('')+'<div style="margin-top:8px"><a href="#news">뉴스 더 보기 →</a></div>';
+  return h+'</div>';}
+function vNews(){
+  var f=S.nf||'중요',L=NEWS.items.filter(function(x){return f==='전체'||(f==='중요'?x.score>=4:NK_STK.test(x.title));}).slice(0,60);
+  var h='<div class="card"><h2>금융·미국 뉴스 <span class="sub">'+(NEWS.t?new Date(NEWS.t).toLocaleTimeString('ko-KR')+' 기준 · '+esc(NEWS.src):'불러오는 중…')+'</span></h2><div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:8px">'
+   +['중요','내 관심','전체'].map(function(t){return '<button type="button" class="'+(t===f?'':'ghost')+'" data-nf="'+t+'">'+t+'</button>';}).join('')+'<button type="button" class="ghost" id="nRef">새로고침</button></div>';
+  h+=L.length?L.map(newsRow).join(''):'<p class="note">'+(NEWS.busy||!NEWS.t?'뉴스를 불러오는 중입니다.':'표시할 뉴스가 없습니다. 뉴스 서버 연결에 실패했을 수 있어요. 새로고침을 눌러 보세요.')+'</p>';
+  return h+'<p class="note">여러 뉴스 서비스(구글뉴스, CNBC)의 제목을 모아 키워드(파산, 금리, 관세, 급락 등)로 중요도를 매기고, 영어는 자동 번역합니다. 번역과 중요도는 자동이라 틀릴 수 있고 속보성 표시는 사실 확인이 아닙니다. 중요한 내용은 링크로 원문과 출처를 꼭 확인하세요.</p></div>';}
+function bindNews(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-nf]'),function(b){b.onclick=function(){S.nf=b.getAttribute('data-nf');save();render();};});
+  var r=document.getElementById('nRef');if(r)r.onclick=function(){NEWS.last=0;newsRefresh();};
+  if(Date.now()-(NEWS.last||0)>300000)newsRefresh();}
+function newsLoop(){setInterval(function(){if(document.visibilityState==='hidden'||S.set.live===false)return;newsRefresh();},300000);}
 function render(){
   var nav=document.getElementById('monthNav');
   var as=['전체'].concat(accts());
@@ -987,7 +1055,7 @@ function render(){
   liveNote();
   var t=document.getElementById('tabs');t.innerHTML='';
   TABS.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x[1];if(x[0]===tab)b.className='on';b.onclick=function(){location.hash=x[0];};t.appendChild(b);});
-  var fn={dash:vDash,all:vAll,watch:vWatch,cp:vCp,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
+  var fn={dash:vDash,all:vAll,news:vNews,watch:vWatch,cp:vCp,ana:vAna,rl:vRl,day:vDay,msum:vMsum,buy:vBuy,btc:vBtc,pen:vPen,items:vItems,notes:vNotes,set:vSet,help:vHelp}[tab];
   document.getElementById('main').innerHTML=fn();
   bind();
   if(tab==='set')document.getElementById('backup').value=JSON.stringify(S);
@@ -1026,7 +1094,8 @@ function bind(){
   if(tab==='btc')bindBtc();
   if(tab==='pen')bindPen();
   if(tab==='ana')bindAna();
-  if(tab==='dash'){bindP30();bindDip();}
+  if(tab==='dash'){bindP30();bindDip();if(Date.now()-(NEWS.last||0)>300000)newsRefresh();}
+  if(tab==='news')bindNews();
   if(tab==='cp')bindCp();
   if(tab==='watch')bindWatch();
   if(tab==='rl')bindRl();
@@ -1221,7 +1290,7 @@ async function load(){
 function route(){var h=location.hash.replace('#','');tab=TABS.some(function(x){return x[0]===h;})?h:'dash';if(S)render();}
 window.addEventListener('hashchange',route);
 S=seed();route();render();load();
-setTimeout(function(){liveRefresh();liveLoop();},1800);
+setTimeout(function(){liveRefresh();liveLoop();newsLoop();},1800);
 })();
 
 </script>
